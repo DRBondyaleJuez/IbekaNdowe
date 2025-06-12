@@ -1,6 +1,7 @@
 package persistence.database.postgresql;
 
 import model.NdoweWord;
+import model.NdoweWordContent;
 import utils.PropertiesReader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,7 +37,7 @@ public class PostgresqlTalker implements DatabaseTalker {
     }
 
     @Override
-    public Optional<List<NdoweWord>> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
+    public Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
         String query = "SELECT "
             + "le.lexical_term, le.phonetic_representation, le.alternative_representations, le.audio_url AS lexical_entry_audio_url, "
             + "s.definition_ndowe, s.type_of_lexicon, s.conceptual_domain, td.translated_definition_text, lt.translation_text,lts.sense_order"
@@ -45,37 +46,39 @@ public class PostgresqlTalker implements DatabaseTalker {
             + "JOIN languages AS l_ndowe ON le.language_id = l_ndowe.language_id "
             + "JOIN lexical_terms_senses AS lts ON le.lexical_entry_id = lts.lexical_entry_id "
             + "JOIN senses AS s ON lts.sense_id = s.sense_id "
-            + "LEFT JOIN translated_definition AS td ON s.sense_id = td.sense_id "
-            + "LEFT JOIN languages AS l_target_def ON td.language_id = l_target_def.language_id "
-            + "LEFT JOIN lexical_translation AS lt ON lts.lexical_term_sense_id = lt.lexical_term_sense_id "
-            + "LEFT JOIN languages AS l_target_lex ON lt.language_id = l_target_lex.language_id "
+            + "LEFT JOIN translated_definition AS td ON s.sense_id = td.sense_id AND td.language_id = (SELECT language_id FROM languages WHERE language_name = ?)"
+            + "LEFT JOIN lexical_translation AS lt ON lts.lexical_term_sense_id = lt.lexical_term_sense_id AND lt.language_id = (SELECT language_id FROM languages WHERE language_name = ?) "
             + "LEFT JOIN example_sentence AS es ON lts.lexical_term_sense_id = es.lexical_term_sense_id "
-            + "LEFT JOIN example_translated_sentence AS ets ON es.example_sentence_id = ets.example_sentence_id"
-            + "LEFT JOIN languages AS l_target_sent ON ets.language_id = l_target_sent.language_id "
+            + "LEFT JOIN example_translated_sentence AS ets ON es.example_sentence_id = ets.example_sentence_id AND ets.language_id = (SELECT language_id FROM languages WHERE language_name = ?)"
             + "WHERE le.lexical_term ILIKE ? "
             + "AND l_ndowe.language_name = ? "
-            + "AND l_target_def.language_code = ? "
-            + "AND l_target_lex.language_code = ? "
-            + "AND l_target_sent.language_code = ?;";
+            + "ORDER BY lts.sense_order;";
 
         Optional<PreparedStatement> preparedStatementOptional = createPreparedStatement(query);
         if (preparedStatementOptional.isEmpty()) Optional.empty();
         PreparedStatement preparedStatement = preparedStatementOptional.get();
 
         try {
-            preparedStatement.setObject(1, searchedWord);
-            preparedStatement.setObject(2, inputLanguage);
+            preparedStatement.setObject(1, outputLanguage);
+            preparedStatement.setObject(2, outputLanguage);
             preparedStatement.setObject(3, outputLanguage);
-            preparedStatement.setObject(4, outputLanguage);
-            preparedStatement.setObject(5, outputLanguage);
+            preparedStatement.setObject(4, searchedWord);
+            preparedStatement.setObject(5, inputLanguage);
+
+
+            Optional<ResultSet> resultSetOptional = executeQuery(preparedStatement);
+            if (resultSetOptional.isEmpty()) {
+                return Optional.empty();
+            }
+
+            NdoweWordContentMapper mapper = new NdoweWordContentMapper();
+            return Optional.of(mapper.mapResultSetToNdoweWordContent(resultSetOptional.get()));
 
         } catch (SQLException sqlException) {
             logger.error("Unable to create prepared statement while trying to insert image to the database", sqlException);
             closeConnection();
             return Optional.empty();
         }
-
-        return null;
     }
 
     @Override
