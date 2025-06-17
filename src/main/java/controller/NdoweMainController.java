@@ -1,6 +1,9 @@
 package controller;
 
+import model.NdoweWordContent;
 import persistence.database.DatabaseManager;
+
+import java.util.Optional;
 
 public class NdoweMainController {
 
@@ -17,4 +20,9 @@ public class NdoweMainController {
     public boolean editWord(){
         return databaseManager.editWord();
     }
+
+    public Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
+        return databaseManager.getNdoweWordContent(searchedWord, inputLanguage, outputLanguage);
+    }
+
 }

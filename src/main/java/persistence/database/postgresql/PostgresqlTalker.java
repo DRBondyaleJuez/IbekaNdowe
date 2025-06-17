@@ -1,5 +1,6 @@
 package persistence.database.postgresql;
 
+import exceptions.WordQuerySQLException;
 import model.NdoweWord;
 import model.NdoweWordContent;
 import utils.PropertiesReader;
@@ -24,9 +25,6 @@ public class PostgresqlTalker implements DatabaseTalker {
     private static final String DATABASE_NAME = PropertiesReader.getDatabaseName();
     private static final String POSTGRES_USER = PropertiesReader.getPostgresUser();
     private static final String POSTGRES_PASSWORD = PropertiesReader.getPostgresPassword();
-    private static final int MAXIMUM_ROWS_PER_INSERT = 1000;
-    private static final String FRONT_FACE_CARD_IMAGE_DATABASE_TABLE_NAME = "CardImages";
-    private static final String BACK_FACE_CARD_IMAGE_DATABASE_TABLE_NAME = "additional_face_images";
 
     // TODO: I'm creating a new connection every time I want to query the DB, use a connectionPool to manage connections instead.
     // TODO: Currently this class is not thread safe at all, you can close connection in the middle of a query and reopen while closing.
@@ -36,48 +34,119 @@ public class PostgresqlTalker implements DatabaseTalker {
         connection = connect().get();
     }
 
+    /**
+     * This method demonstrates how to build a PreparedStatement for the complex
+     * word translation query provided, replacing literal values with placeholders.
+     *
+     * @param connection The active JDBC Connection object.
+     * @param wordToTranslate The word to search for (e.g., "TEST_Máí").
+     * @param inputLanguageName The name of the input language (e.g., "Kombe_TEST").
+     * @param outputLanguageName The name of the output language (e.g., "Bapuku_TEST").
+     * @return An Optional containing the ResultSet if data is found, otherwise empty.
+     * @throws SQLException If a database access error occurs.
+     */
     @Override
-    public Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
-        String query = "SELECT "
-            + "le.lexical_term, le.phonetic_representation, le.alternative_representations, le.audio_url AS lexical_entry_audio_url, "
-            + "s.definition_ndowe, s.type_of_lexicon, s.conceptual_domain, td.translated_definition_text, lt.translation_text,lts.sense_order"
-            + "es.sentence_ndowe, es.audio_url_sentence, ets.translated_sentence_text,"
-            + "FROM lexical_entries AS le"
-            + "JOIN languages AS l_ndowe ON le.language_id = l_ndowe.language_id "
-            + "JOIN lexical_terms_senses AS lts ON le.lexical_entry_id = lts.lexical_entry_id "
-            + "JOIN senses AS s ON lts.sense_id = s.sense_id "
-            + "LEFT JOIN translated_definition AS td ON s.sense_id = td.sense_id AND td.language_id = (SELECT language_id FROM languages WHERE language_name = ?)"
-            + "LEFT JOIN lexical_translation AS lt ON lts.lexical_term_sense_id = lt.lexical_term_sense_id AND lt.language_id = (SELECT language_id FROM languages WHERE language_name = ?) "
-            + "LEFT JOIN example_sentence AS es ON lts.lexical_term_sense_id = es.lexical_term_sense_id "
-            + "LEFT JOIN example_translated_sentence AS ets ON es.example_sentence_id = ets.example_sentence_id AND ets.language_id = (SELECT language_id FROM languages WHERE language_name = ?)"
-            + "WHERE le.lexical_term ILIKE ? "
-            + "AND l_ndowe.language_name = ? "
-            + "ORDER BY lts.sense_order;";
+    public Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) throws WordQuerySQLException{
+        //TODO: Add also that the searchedWord could be contained in the alternative representations
+        String query = "SELECT\n" +
+                "    input_le.lexical_term AS input_word,\n" +
+                "    input_le.phonetic_representation AS input_word_phonetic,\n" +
+                "    input_le.audio_url AS input_word_audio_url,\n" +
+                "    input_lang.language_name AS input_language_name,\n" +
+                "    input_s.sense_order AS input_sense_order,\n" +
+                "    input_s.definition AS input_sense_definition,\n" +
+                "    input_s.type_of_lexicon AS input_sense_type_of_lexicon,\n" +
+                "    input_s.conceptual_domain AS input_sense_conceptual_domain,\n" +
+                "    input_s.sentence AS input_sense_example_sentence,\n" +
+                "    input_s.audio_url_sentence AS input_sense_example_audio_url,\n" +
+                "    td_input_to_output.translated_definition_text AS input_sense_definition_in_output_language,\n" +
+                "    ts_input_to_output.translated_sentence_text AS input_sense_example_in_output_language,\n" +
+                "    output_le.lexical_term AS translated_word,\n" +
+                "    output_le.phonetic_representation AS translated_word_phonetic,\n" +
+                "    output_le.audio_url AS translated_word_audio_url,\n" +
+                "    output_lang.language_name AS output_language_name,\n" +
+                "    output_s.definition AS translated_sense_definition,\n" +
+                "    output_s.type_of_lexicon AS translated_sense_type_of_lexicon,\n" +
+                "    output_s.conceptual_domain AS translated_sense_conceptual_domain,\n" +
+                "    output_s.sentence AS translated_sense_example_sentence,\n" +
+                "    output_s.audio_url_sentence AS translated_sense_example_audio_url,\n" +
+                "    td_output_to_input.translated_definition_text AS translated_sense_definition_in_input_language,\n" +
+                "    ts_output_to_input.translated_sentence_text AS translated_sense_example_in_input_language\n" +
+                "FROM\n" +
+                "    lexical_entries AS input_le\n" +
+                "JOIN\n" +
+                "    languages AS input_lang\n" +
+                "    ON input_le.language_id = input_lang.language_id\n" +
+                "    AND input_lang.language_name = ?\n" +
+                "JOIN\n" +
+                "    senses AS input_s\n" +
+                "    ON input_le.lexical_entry_id = input_s.lexical_entry_id\n" +
+                "JOIN\n" +
+                "    lexical_translation AS lt\n" +
+                "    ON input_s.sense_id = lt.sense_id\n" +
+                "JOIN\n" +
+                "    languages AS lt_target_lang\n" +
+                "    ON lt.language_id = lt_target_lang.language_id\n" +
+                "    AND lt_target_lang.language_name = ?\n" +
+                "JOIN\n" +
+                "    senses AS output_s\n" +
+                "    ON lt.target_sense_id = output_s.sense_id\n" +
+                "JOIN\n" +
+                "    lexical_entries AS output_le\n" +
+                "    ON output_s.lexical_entry_id = output_le.lexical_entry_id\n" +
+                "JOIN\n" +
+                "    languages AS output_lang\n" +
+                "    ON output_le.language_id = output_lang.language_id\n" +
+                "    AND output_lang.language_name = ?\n" +
+                "LEFT JOIN\n" +
+                "    translated_definitions AS td_output_to_input\n" +
+                "    ON output_s.sense_id = td_output_to_input.sense_id\n" +
+                "    AND td_output_to_input.language_id = input_lang.language_id\n" +
+                "LEFT JOIN\n" +
+                "    translated_sentence AS ts_output_to_input\n" +
+                "    ON output_s.sense_id = ts_output_to_input.sense_id\n" +
+                "    AND ts_output_to_input.language_id = input_lang.language_id\n" +
+                "LEFT JOIN\n" +
+                "    translated_definitions AS td_input_to_output\n" +
+                "    ON input_s.sense_id = td_input_to_output.sense_id\n" +
+                "    AND td_input_to_output.language_id = output_lang.language_id\n" +
+                "LEFT JOIN\n" +
+                "    translated_sentence AS ts_input_to_output\n" +
+                "    ON input_s.sense_id = ts_input_to_output.sense_id\n" +
+                "    AND ts_input_to_output.language_id = output_lang.language_id\n" +
+                "WHERE\n" +
+                "    input_le.lexical_term ILIKE ?\n" +
+                "ORDER BY\n" +
+                "    input_s.sense_order;";
 
         Optional<PreparedStatement> preparedStatementOptional = createPreparedStatement(query);
         if (preparedStatementOptional.isEmpty()) Optional.empty();
         PreparedStatement preparedStatement = preparedStatementOptional.get();
 
         try {
-            preparedStatement.setObject(1, outputLanguage);
+            preparedStatement.setObject(1, inputLanguage);
             preparedStatement.setObject(2, outputLanguage);
             preparedStatement.setObject(3, outputLanguage);
             preparedStatement.setObject(4, searchedWord);
-            preparedStatement.setObject(5, inputLanguage);
 
 
             Optional<ResultSet> resultSetOptional = executeQuery(preparedStatement);
             if (resultSetOptional.isEmpty()) {
-                return Optional.empty();
+                return null;
             }
 
             NdoweWordContentMapper mapper = new NdoweWordContentMapper();
             return Optional.of(mapper.mapResultSetToNdoweWordContent(resultSetOptional.get()));
 
         } catch (SQLException sqlException) {
-            logger.error("Unable to create prepared statement while trying to insert image to the database", sqlException);
-            closeConnection();
-            return Optional.empty();
+            //Todo: think or ask LLM for a solution to what to return so it contemplates the ok, empty, error scenarios before responding with different http
+            logger.error("Unable to perform word  translation search", sqlException);
+            String errorQuerySummary = "Word search SQL error:" +
+                    "- Word input: " + searchedWord + "\n" +
+                    "- Input language: " + inputLanguage + "\n" +
+                    "- Output language: " + outputLanguage + ";";
+
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
         }
     }
 

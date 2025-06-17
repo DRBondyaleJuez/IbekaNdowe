@@ -6,10 +6,10 @@ import java.time.LocalDateTime; // If you plan to store timestamps in your model
 
 public class NdoweWordContent {
     // Lexical Entry fields
-    private String lexicalTerm;
-    private String phoneticRepresentation;
-    private List<String> alternativeRepresentations;
-    private String lexicalEntryAudioUrl;
+    private final String lexicalTerm;
+    private final String phoneticRepresentation;
+    private final List<String> alternativeRepresentations;
+    private final String lexicalEntryAudioUrl;
 
     // Sense and Definition fields (a single NdoweWordContent can have multiple senses)
     private List<Sense> senses;

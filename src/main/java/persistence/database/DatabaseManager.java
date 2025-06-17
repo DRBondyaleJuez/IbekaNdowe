@@ -1,7 +1,10 @@
 package persistence.database;
 
 import model.NdoweWord;
+import model.NdoweWordContent;
 import persistence.database.postgresql.PostgresqlTalker;
+
+import java.util.Optional;
 
 public class DatabaseManager {
     private static DatabaseManager instance = null;
@@ -24,5 +27,9 @@ public class DatabaseManager {
 
     public synchronized boolean editWord(){
         return true;
+    }
+
+    public synchronized Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
+        return databaseTalker.getNdoweWordContent(searchedWord, inputLanguage, outputLanguage);
     }
 }
