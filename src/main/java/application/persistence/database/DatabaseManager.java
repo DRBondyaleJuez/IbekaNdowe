@@ -1,8 +1,8 @@
-package persistence.database;
+package application.persistence.database;
 
-import model.NdoweWord;
-import model.NdoweWordContent;
-import persistence.database.postgresql.PostgresqlTalker;
+import application.persistence.database.postgresql.PostgresqlTalker;
+import application.model.NdoweWord;
+import application.model.TranslatedWordContent;
 
 import java.util.Optional;
 
@@ -29,7 +29,7 @@ public class DatabaseManager {
         return true;
     }
 
-    public synchronized Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
-        return databaseTalker.getNdoweWordContent(searchedWord, inputLanguage, outputLanguage);
+    public synchronized Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
+        return databaseTalker.getTranslatedWordContent(searchedWord, inputLanguage, outputLanguage);
     }
 }

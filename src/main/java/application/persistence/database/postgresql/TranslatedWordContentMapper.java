@@ -1,15 +1,11 @@
-package persistence.database.postgresql;
+package application.persistence.database.postgresql;
 
-import model.NdoweWordContent;
-import model.TranslatedWordContent;
-import model.TranslationEntry;
+import application.model.TranslatedWordContent;
+import application.model.TranslationEntry;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class TranslatedWordContentMapper {
@@ -19,10 +15,6 @@ public class TranslatedWordContentMapper {
             return null; // Or throw an exception, depending on your error handling
         }
 
-        // Use a map to handle multiple senses and examples for a single word
-        // Key: senseOrder -> Value: Sense object
-        Map<Integer, TranslatedWordContent> sensesMap = new HashMap<>();
-
         TranslatedWordContent.Builder wordContentBuilder = new TranslatedWordContent.Builder();
         boolean firstRow = true; // Flag to capture common lexical entry details once
 
@@ -30,7 +22,7 @@ public class TranslatedWordContentMapper {
             if (firstRow) {
                 // Populate lexical entry details only once from the first row
                 wordContentBuilder.setInputWord(rs.getString("input_word"))
-                        .setInputLanguageName(rs.getString("language_name"))
+                        .setInputLanguageName(rs.getString("input_language_name"))
                         .setInputWordPhonetic(rs.getString("input_word_phonetic"))
                         .setInputWordAudioUrl(rs.getString("input_word_audio_url"))
                         .setOutputLanguageName(rs.getString("output_language_name"))
@@ -61,7 +53,7 @@ public class TranslatedWordContentMapper {
                     rs.getString("input_sense_conceptual_domain"),
                     rs.getString("input_sense_example_sentence"),
                     rs.getString("input_sense_example_audio_url"),
-                    rs.getString("input_definition_in_output_language"),
+                    rs.getString("input_sense_definition_in_output_language"),
                     rs.getString("input_sense_example_in_output_language")
             );
 
@@ -70,7 +62,7 @@ public class TranslatedWordContentMapper {
                     rs.getString("translated_word"),
                     rs.getString("translated_word_phonetic"),
                     rs.getString("translated_word_audio_url"),
-                    rs.getString("translated_language_name")
+                    rs.getString("output_language_name")
             );
 
             // Setting currentTranslatedSenseDetails
@@ -80,7 +72,7 @@ public class TranslatedWordContentMapper {
                     rs.getString("translated_sense_conceptual_domain"),
                     rs.getString("translated_sense_example_sentence"),
                     rs.getString("translated_sense_example_audio_url"),
-                    rs.getString("translated_definition_in_input_language"),
+                    rs.getString("translated_sense_definition_in_input_language"),
                     rs.getString("translated_sense_example_in_input_language")
             );
 

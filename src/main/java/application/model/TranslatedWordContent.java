@@ -1,4 +1,8 @@
-package model;
+package application.model;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,13 +12,16 @@ import java.util.List;
  * and a list of all found translation entries (sense-to-sense mappings).
  * This is the top-level object that would be returned by the data access layer.
  */
+@Data // Generates getters, setters, toString, equals, hashCode
+@NoArgsConstructor // Adds the no-argument constructor required by Jackson
+@AllArgsConstructor // Adds a constructor with all fields (useful if you use it)
 public class TranslatedWordContent{
-    private final String inputWord;
-    private final String inputWordPhonetic;
-    private final String inputWordAudioUrl;
-    private final String inputLanguageName;
-    private final String outputLanguageName;
-    private final List<TranslationEntry> translationEntries;
+    private String inputWord;
+    private String inputWordPhonetic;
+    private String inputWordAudioUrl;
+    private String inputLanguageName;
+    private String outputLanguageName;
+    private List<TranslationEntry> translationEntries;
 
     public TranslatedWordContent(Builder builder) {
         this.inputWord = builder.inputWord;
@@ -23,30 +30,6 @@ public class TranslatedWordContent{
         this.inputLanguageName = builder.inputLanguageName;
         this.outputLanguageName = builder.outputLanguageName;
         this.translationEntries = builder.translationEntries;
-    }
-
-    public String getInputWord() {
-        return inputWord;
-    }
-
-    public String getInputWordPhonetic() {
-        return inputWordPhonetic;
-    }
-
-    public String getInputWordAudioUrl() {
-        return inputWordAudioUrl;
-    }
-
-    public String getInputLanguageName() {
-        return inputLanguageName;
-    }
-
-    public String getOutputLanguageName() {
-        return outputLanguageName;
-    }
-
-    public List<TranslationEntry> getTranslationEntries() {
-        return translationEntries;
     }
 
     public static class Builder {

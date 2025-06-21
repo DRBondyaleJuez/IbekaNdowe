@@ -1,6 +1,6 @@
-package persistence.database.postgresql;
+package application.persistence.database.postgresql;
 
-import model.NdoweWordContent;
+import application.model.NdoweWordContent;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

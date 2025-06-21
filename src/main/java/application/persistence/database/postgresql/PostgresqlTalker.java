@@ -1,26 +1,20 @@
-package persistence.database.postgresql;
+package application.persistence.database.postgresql;
 
-import exceptions.WordQuerySQLException;
-import model.NdoweWord;
-import model.NdoweWordContent;
-import utils.PropertiesReader;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import persistence.database.DatabaseTalker;
+import application.exceptions.WordQuerySQLException;
+import application.model.NdoweWord;
+import application.model.TranslatedWordContent;
+import application.utils.PropertiesReader;
+import application.persistence.database.DatabaseTalker;
 
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 
 public class PostgresqlTalker implements DatabaseTalker {
-    private static final Logger logger = LogManager.getLogger(PostgresqlTalker.class);
+    //private static final Logger logger = LogManager.getLogger(PostgresqlTalker.class);
     private static final String POSTGRES_URL = PropertiesReader.getPostgresUrl();
     private static final String DATABASE_NAME = PropertiesReader.getDatabaseName();
     private static final String POSTGRES_USER = PropertiesReader.getPostgresUser();
@@ -38,15 +32,14 @@ public class PostgresqlTalker implements DatabaseTalker {
      * This method demonstrates how to build a PreparedStatement for the complex
      * word translation query provided, replacing literal values with placeholders.
      *
-     * @param connection The active JDBC Connection object.
-     * @param wordToTranslate The word to search for (e.g., "TEST_Máí").
-     * @param inputLanguageName The name of the input language (e.g., "Kombe_TEST").
-     * @param outputLanguageName The name of the output language (e.g., "Bapuku_TEST").
+     * @param searchedWord The word to search for (e.g., "TEST_Máí").
+     * @param inputLanguage The name of the input language (e.g., "Kombe_TEST").
+     * @param outputLanguage The name of the output language (e.g., "Bapuku_TEST").
      * @return An Optional containing the ResultSet if data is found, otherwise empty.
      * @throws SQLException If a database access error occurs.
      */
     @Override
-    public Optional<NdoweWordContent> getNdoweWordContent(String searchedWord, String inputLanguage, String outputLanguage) throws WordQuerySQLException{
+    public Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
         //TODO: Add also that the searchedWord could be contained in the alternative representations
         String query = "SELECT\n" +
                 "    input_le.lexical_term AS input_word,\n" +
@@ -135,12 +128,12 @@ public class PostgresqlTalker implements DatabaseTalker {
                 return null;
             }
 
-            NdoweWordContentMapper mapper = new NdoweWordContentMapper();
-            return Optional.of(mapper.mapResultSetToNdoweWordContent(resultSetOptional.get()));
+            TranslatedWordContentMapper mapper = new TranslatedWordContentMapper();
+            return Optional.of(mapper.mapResultSetToTranslatedWordContent(resultSetOptional.get()));
 
         } catch (SQLException sqlException) {
             //Todo: think or ask LLM for a solution to what to return so it contemplates the ok, empty, error scenarios before responding with different http
-            logger.error("Unable to perform word  translation search", sqlException);
+            //logger.error("Unable to perform word  translation search", sqlException);
             String errorQuerySummary = "Word search SQL error:" +
                     "- Word input: " + searchedWord + "\n" +
                     "- Input language: " + inputLanguage + "\n" +
@@ -376,8 +369,8 @@ public class PostgresqlTalker implements DatabaseTalker {
             connection = DriverManager.getConnection(POSTGRES_URL + DATABASE_NAME, POSTGRES_USER, POSTGRES_PASSWORD);
             return Optional.of(connection);
         } catch (SQLException sqlException) {
-            logger.error("Unable to connect to the the database with the following parameters: URL: " + POSTGRES_URL
-                    + ", Database name: " + DATABASE_NAME , sqlException);
+            /*logger.error("Unable to connect to the the database with the following parameters: URL: " + POSTGRES_URL
+                    + ", Database name: " + DATABASE_NAME , sqlException);*/
             return Optional.empty();
         }
     }
@@ -392,7 +385,7 @@ public class PostgresqlTalker implements DatabaseTalker {
             connection.setAutoCommit(true);
             return Optional.of(connection.prepareStatement(query));
         } catch (SQLException sqlException) {
-            logger.error("Unable to create prepared statement for the query: " + query, sqlException);
+            /*logger.error("Unable to create prepared statement for the query: " + query, sqlException);*/
             closeConnection();
             return Optional.empty();
         }
@@ -404,7 +397,7 @@ public class PostgresqlTalker implements DatabaseTalker {
             closeConnection();
             return Optional.of(resultSet);
         } catch (SQLException sqlException) {
-            logger.error("Error while executing QUERY with preparedStatement", sqlException);
+            /*logger.error("Error while executing QUERY with preparedStatement", sqlException);*/
             closeConnection();
             return Optional.empty();
         }
@@ -415,7 +408,7 @@ public class PostgresqlTalker implements DatabaseTalker {
             preparedStatement.executeUpdate();
             closeConnection();
         } catch (SQLException sqlException) {
-            logger.error("Unable to execute UPDATE with preparedStatement", sqlException);
+            /*logger.error("Unable to execute UPDATE with preparedStatement", sqlException);*/
             closeConnection();
         }
     }
@@ -429,7 +422,7 @@ public class PostgresqlTalker implements DatabaseTalker {
             connection.close();
             connection = null;
         } catch (SQLException sqlException) {
-            logger.error("Unable to close connection to database", sqlException);
+            /*logger.error("Unable to close connection to database", sqlException);*/
         }
     }
 }

@@ -1,8 +1,7 @@
-package model;
+package application.model;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.time.LocalDateTime; // If you plan to store timestamps in your model
 
 public class NdoweWordContent {
     // Lexical Entry fields
