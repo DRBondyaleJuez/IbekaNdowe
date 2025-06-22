@@ -1,0 +1,251 @@
+-- PostgreSQL Dummy Test Data Inserts for Ndowe Language Platform
+
+-- This script inserts a comprehensive set of dummy data for testing purposes.
+-- All data is prefixed with 'TEST_' or uses easily identifiable patterns
+-- to ensure it's not confused with real production data.
+-- We use a DO $$ block to declare variables for UUIDs and IDs, allowing for
+-- better script organization and ensuring foreign key relationships are correctly established.
+
+DO $$
+DECLARE
+    -- User UUIDs
+    test_user_mod_id UUID := '00000000-0000-0000-0000-000000000001';
+    test_user_contrib1_id UUID := '00000000-0000-0000-0000-000000000002';
+    test_user_contrib2_id UUID := '00000000-0000-0000-0000-000000000003';
+    test_user_contrib3_id UUID := '00000000-0000-0000-0000-000000000004';
+    test_user_reviewer_id UUID := '00000000-0000-0000-0000-000000000005';
+
+
+    -- Language IDs (will be fetched dynamically after language inserts)
+    kombe_lang_id INTEGER;
+    bapuku_lang_id INTEGER;
+    benga_lang_id INTEGER;
+    spanish_lang_id INTEGER;
+    english_lang_id INTEGER;
+    french_lang_id INTEGER;
+
+    -- Lexical Entry UUIDs
+    le_kombe_hello_id UUID := '00000000-0000-0000-0000-000000000011';
+    le_kombe_water_id UUID := '00000000-0000-0000-0000-000000000012';
+    le_bapuku_fish_id UUID := '00000000-0000-0000-0000-000000000013';
+    le_kombe_tree_id UUID := '00000000-0000-0000-0000-000000000014';
+    le_bapuku_sun_id UUID := '00000000-0000-0000-0000-000000000015';
+    le_kombe_house_id UUID := '00000000-0000-0000-0000-000000000016';
+    le_bapuku_moon_id UUID := '00000000-0000-0000-0000-000000000017';
+    le_benga_food_id UUID := '00000000-0000-0000-0000-000000000018';
+    le_kombe_child_id UUID := '00000000-0000-0000-0000-000000000019';
+    le_kombe_eat_id UUID := '00000000-0000-0000-0000-00000000001A';
+    le_bapuku_run_id UUID := '00000000-0000-0000-0000-00000000001B';
+
+    -- Sense IDs (these are serial, so we'll need to capture them after insertion)
+    sense_kombe_hello_1_id INTEGER;
+    sense_kombe_hello_2_id INTEGER; -- Second sense for 'Mbote'
+    sense_kombe_water_1_id INTEGER;
+    sense_bapuku_fish_1_id INTEGER;
+    sense_kombe_tree_1_id INTEGER;
+    sense_bapuku_sun_1_id INTEGER;
+    sense_kombe_house_1_id INTEGER;
+    sense_bapuku_moon_1_id INTEGER;
+    sense_benga_food_1_id INTEGER;
+    sense_kombe_child_1_id INTEGER;
+    sense_kombe_eat_1_id INTEGER;
+    sense_bapuku_run_1_id INTEGER;
+    sense_kombe_eat_2_id INTEGER; -- Second sense for 'eat' (e.g., figurative)
+
+
+    -- Timestamps
+    created_ts TIMESTAMP := '2025-06-15 10:00:00';
+    updated_ts1 TIMESTAMP := '2025-06-15 11:30:00';
+    updated_ts2 TIMESTAMP := '2025-06-16 09:15:00';
+    submitted_ts TIMESTAMP := '2025-06-16 10:00:00';
+    reviewed_ts TIMESTAMP := '2025-06-16 11:00:00';
+
+
+BEGIN
+
+    -- 1. USERS
+    -- Dummy user entries for testing purposes
+    INSERT INTO users (user_id, email, role) VALUES
+    (test_user_mod_id, 'TEST_moderator@example.com', 'moderator'),
+    (test_user_contrib1_id, 'TEST_contributor1@example.com', 'contributor'),
+    (test_user_contrib2_id, 'TEST_contributor2@example.com', 'contributor'),
+    (test_user_contrib3_id, 'TEST_contributor3@example.com', 'contributor'),
+    (test_user_reviewer_id, 'TEST_reviewer@example.com', 'moderator');
+
+    -- 2. LANGUAGES
+    INSERT INTO languages (language_name, language_code, language_type) VALUES
+    ('Kombe_TEST', 'KMB_T', CAST('ndowe' AS language_type_enum)),
+    ('Bapuku_TEST', 'BPK_T', CAST('ndowe' AS language_type_enum)),
+    ('Benga_TEST', 'BGA_T', CAST('ndowe' AS language_type_enum)),
+    ('Spanish_TEST', 'ES_T', CAST('translation_target' AS language_type_enum)),
+    ('English_TEST', 'EN_T', CAST('translation_target' AS language_type_enum)),
+    ('French_TEST', 'FR_T', CAST('translation_target' AS language_type_enum));
+
+    -- Fetch language IDs into variables
+    SELECT language_id INTO kombe_lang_id FROM languages WHERE language_name = 'Kombe_TEST';
+    SELECT language_id INTO bapuku_lang_id FROM languages WHERE language_name = 'Bapuku_TEST';
+    SELECT language_id INTO benga_lang_id FROM languages WHERE language_name = 'Benga_TEST';
+    SELECT language_id INTO spanish_lang_id FROM languages WHERE language_name = 'Spanish_TEST';
+    SELECT language_id INTO english_lang_id FROM languages WHERE language_name = 'English_TEST';
+    SELECT language_id INTO french_lang_id FROM languages WHERE language_name = 'French_TEST';
+
+    -- 3. LEXICAL_ENTRIES (10 entries)
+    INSERT INTO lexical_entries (lexical_entry_id, language_id, lexical_term, phonetic_representation, alternative_representations, notes, audio_url, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_hello_id, kombe_lang_id, 'TEST_Mbote', 'm-bo-te', ARRAY['Mboté', 'Mboote'], 'Common Kombe greeting. Test entry.', 'http://test.audio/kombe_hello.mp3', created_ts, updated_ts1, test_user_contrib1_id),
+    (le_kombe_water_id, kombe_lang_id, 'TEST_Máí', 'ma-í', ARRAY['Mai'], 'Basic Kombe word for water. Test entry.', 'http://test.audio/kombe_water.mp3', created_ts, NULL, test_user_contrib1_id),
+    (le_bapuku_fish_id, bapuku_lang_id, 'TEST_Nsuni', 'n-su-ni', NULL, 'A common fish type in Bapuku. Test entry.', 'http://test.audio/bapuku_fish.mp3', created_ts, updated_ts1, test_user_contrib2_id),
+    (le_kombe_tree_id, kombe_lang_id, 'TEST_Muti', 'mu-ti', NULL, 'Generic word for tree in Kombe. Test data.', 'http://test.audio/kombe_tree.mp3', created_ts, NULL, test_user_contrib1_id),
+    (le_bapuku_sun_id, bapuku_lang_id, 'TEST_Eyi', 'e-yi', ARRAY['Eyi_alt'], 'Word for sun in Bapuku. Test data.', 'http://test.audio/bapuku_sun.mp3', created_ts, updated_ts1, test_user_contrib2_id),
+    (le_kombe_house_id, kombe_lang_id, 'TEST_Nyumba', 'nyu-mba', NULL, 'Kombe word for house. Test entry.', 'http://test.audio/kombe_house.mp3', created_ts, NULL, test_user_contrib3_id),
+    (le_bapuku_moon_id, bapuku_lang_id, 'TEST_Nzolo', 'n-zo-lo', NULL, 'Bapuku word for moon. Test entry.', 'http://test.audio/bapuku_moon.mp3', created_ts, updated_ts2, test_user_contrib2_id),
+    (le_benga_food_id, benga_lang_id, 'TEST_Bidia', 'bi-di-a', NULL, 'Benga word for food. Test entry.', 'http://test.audio/benga_food.mp3', created_ts, NULL, test_user_contrib3_id),
+    (le_kombe_child_id, kombe_lang_id, 'TEST_Mwana', 'mwa-na', ARRAY['Mwána'], 'Kombe word for child. Test entry.', 'http://test.audio/kombe_child.mp3', created_ts, updated_ts1, test_user_contrib1_id),
+    (le_kombe_eat_id, kombe_lang_id, 'TEST_Diá', 'di-a', NULL, 'Kombe verb "to eat". Test entry.', 'http://test.audio/kombe_eat.mp3', created_ts, NULL, test_user_contrib1_id),
+    (le_bapuku_run_id, bapuku_lang_id, 'TEST_Túka', 'tu-ka', NULL, 'Bapuku verb "to run". Test entry.', 'http://test.audio/bapuku_run.mp3', created_ts, updated_ts2, test_user_contrib2_id);
+
+    -- 4. SENSES (13 entries - including multiple senses for some words)
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_hello_id, 1, 'TEST_Def_Mbote_1: A greeting used when meeting someone.', 'greeting', 'social', 'TEST_Sentence_Mbote_1: Mbote! Uli wé?', 'http://test.audio/sent_mbote1.mp3', 'Sense 1 for hello (greeting).', created_ts, updated_ts1, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_hello_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_hello_id, 2, 'TEST_Def_Mbote_2: An exclamation of surprise or disbelief.', 'exclamation', 'emotion', 'TEST_Sentence_Mbote_2: Mbote! Ni bwali bo nza!', 'http://test.audio/sent_mbote2.mp3', 'Sense 2 for hello (surprise).', created_ts, updated_ts1, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_hello_2_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_water_id, 1, 'TEST_Def_Maí_1: The clear liquid that descends as rain or forms rivers, lakes, and seas.', 'noun', 'nature', 'TEST_Sentence_Maí_1: Na nganda kuá, díá máí.', 'http://test.audio/sent_mai1.mp3', 'Primary sense for water.', created_ts, NULL, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_water_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_bapuku_fish_id, 1, 'TEST_Def_Nsuni_1: A cold-blooded vertebrate animal with gills and fins.', 'noun', 'animals', 'TEST_Sentence_Nsuni_1: Mu nlála nsuni wa múkána.', 'http://test.audio/sent_nsuni1.mp3', 'General sense of fish.', created_ts, updated_ts1, test_user_contrib2_id)
+    RETURNING sense_id INTO sense_bapuku_fish_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_tree_id, 1, 'TEST_Def_Muti_1: A tall plant with a trunk and branches.', 'noun', 'nature', 'TEST_Sentence_Muti_1: Wana míti mítu mbanzi.', 'http://test.audio/sent_muti1.mp3', 'Sense for plant/tree.', created_ts, NULL, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_tree_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_bapuku_sun_id, 1, 'TEST_Def_Eyi_1: The star that the Earth orbits, providing light and heat.', 'noun', 'celestial', 'TEST_Sentence_Eyi_1: Eyi ya pánda ya kábí.', 'http://test.audio/sent_eyi1.mp3', 'Sense for sun.', created_ts, updated_ts1, test_user_contrib2_id)
+    RETURNING sense_id INTO sense_bapuku_sun_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_house_id, 1, 'TEST_Def_Nyumba_1: A building for human habitation.', 'noun', 'architecture', 'TEST_Sentence_Nyumba_1: Nyumba ya wela wé.', 'http://test.audio/sent_nyumba1.mp3', 'Sense for house.', created_ts, NULL, test_user_contrib3_id)
+    RETURNING sense_id INTO sense_kombe_house_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_bapuku_moon_id, 1, 'TEST_Def_Nzolo_1: The natural satellite of the Earth.', 'noun', 'celestial', 'TEST_Sentence_Nzolo_1: Nzolo ya bángana.', 'http://test.audio/sent_nzolo1.mp3', 'Sense for moon.', created_ts, updated_ts2, test_user_contrib2_id)
+    RETURNING sense_id INTO sense_bapuku_moon_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_benga_food_id, 1, 'TEST_Def_Bidia_1: Any nutritious substance that people or animals eat.', 'noun', 'nutrition', 'TEST_Sentence_Bidia_1: Ngadi ná bidia.', 'http://test.audio/sent_bidia1.mp3', 'Sense for food.', created_ts, NULL, test_user_contrib3_id)
+    RETURNING sense_id INTO sense_benga_food_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_child_id, 1, 'TEST_Def_Mwana_1: A young human being.', 'noun', 'family', 'TEST_Sentence_Mwana_1: Mwana ná múkána.', 'http://test.audio/sent_mwana1.mp3', 'Sense for child.', created_ts, updated_ts1, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_child_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_eat_id, 1, 'TEST_Def_Diá_1: To put food into the mouth and chew and swallow it.', 'verb', 'action', 'TEST_Sentence_Diá_1: Bá diá bidia.', 'http://test.audio/sent_dia1.mp3', 'Primary sense for eating.', created_ts, NULL, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_eat_1_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_eat_id, 2, 'TEST_Def_Diá_2: To consume or use up (e.g., money).', 'verb', 'financial', 'TEST_Sentence_Diá_2: Bá diá mbongo.', 'http://test.audio/sent_dia2.mp3', 'Figurative sense for consuming resources.', created_ts, updated_ts2, test_user_contrib1_id)
+    RETURNING sense_id INTO sense_kombe_eat_2_id;
+
+    INSERT INTO senses (lexical_entry_id, sense_order, definition, type_of_lexicon, conceptual_domain, sentence, audio_url_sentence, notes, created_at, updated_at, contributor_id) VALUES
+    (le_bapuku_run_id, 1, 'TEST_Def_Túka_1: To move at a speed faster than walking.', 'verb', 'movement', 'TEST_Sentence_Túka_1: Nzádi ya túka na mpílu.', 'http://test.audio/sent_tuka1.mp3', 'Sense for running.', created_ts, updated_ts2, test_user_contrib2_id)
+    RETURNING sense_id INTO sense_bapuku_run_1_id;
+
+
+    -- 5. TRANSLATED_DEFINITIONS (approx. 10 entries)
+    INSERT INTO translated_definitions (sense_id, language_id, translated_definition_text, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_hello_1_id, spanish_lang_id, 'TEST_TR_Def_Mbote_1_ES: Un saludo usado al encontrarse con alguien.', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_hello_1_id, english_lang_id, 'TEST_TR_Def_Mbote_1_EN: A greeting used when meeting someone.', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_hello_2_id, spanish_lang_id, 'TEST_TR_Def_Mbote_2_ES: Una exclamación de sorpresa.', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_water_1_id, spanish_lang_id, 'TEST_TR_Def_Maí_1_ES: El líquido transparente, vital para la vida.', created_ts, NULL, test_user_contrib1_id),
+    (sense_bapuku_fish_1_id, english_lang_id, 'TEST_TR_Def_Nsuni_1_EN: An aquatic, gill-breathing vertebrate.', created_ts, NULL, test_user_contrib2_id),
+    (sense_kombe_tree_1_id, french_lang_id, 'TEST_TR_Def_Muti_1_FR: Grande plante ligneuse avec un tronc.', created_ts, NULL, test_user_contrib1_id),
+    (sense_bapuku_sun_1_id, spanish_lang_id, 'TEST_TR_Def_Eyi_1_ES: La estrella central del sistema solar.', created_ts, NULL, test_user_contrib2_id),
+    (sense_kombe_house_1_id, english_lang_id, 'TEST_TR_Def_Nyumba_1_EN: A building for people to live in.', created_ts, NULL, test_user_contrib3_id),
+    (sense_benga_food_1_id, spanish_lang_id, 'TEST_TR_Def_Bidia_1_ES: Sustancia nutritiva que se come.', created_ts, NULL, test_user_contrib3_id),
+    (sense_kombe_child_1_id, english_lang_id, 'TEST_TR_Def_Mwana_1_EN: A young person, not yet an adult.', created_ts, NULL, test_user_contrib1_id);
+
+    -- 6. TRANSLATED_SENTENCE (approx. 10 entries)
+    INSERT INTO translated_sentence (sense_id, language_id, translated_sentence_text, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_hello_1_id, spanish_lang_id, 'TEST_TR_Sent_Mbote_1_ES: ¡Hola! ¿Cómo estás?', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_hello_1_id, english_lang_id, 'TEST_TR_Sent_Mbote_1_EN: Hello! How are you?', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_water_1_id, spanish_lang_id, 'TEST_TR_Sent_Maí_1_ES: En el pueblo, bebe agua.', created_ts, NULL, test_user_contrib1_id),
+    (sense_bapuku_fish_1_id, english_lang_id, 'TEST_TR_Sent_Nsuni_1_EN: I caught a very big fish.', created_ts, NULL, test_user_contrib2_id),
+    (sense_kombe_tree_1_id, french_lang_id, 'TEST_TR_Sent_Muti_1_FR: Il y a de grands arbres ici.', created_ts, NULL, test_user_contrib1_id),
+    (sense_bapuku_sun_1_id, spanish_lang_id, 'TEST_TR_Sent_Eyi_1_ES: El sol es muy brillante hoy.', created_ts, NULL, test_user_contrib2_id),
+    (sense_kombe_house_1_id, english_lang_id, 'TEST_TR_Sent_Nyumba_1_EN: My house is near the river.', created_ts, NULL, test_user_contrib3_id),
+    (sense_benga_food_1_id, spanish_lang_id, 'TEST_TR_Sent_Bidia_1_ES: Necesito comprar comida para la cena.', created_ts, NULL, test_user_contrib3_id),
+    (sense_kombe_child_1_id, english_lang_id, 'TEST_TR_Sent_Mwana_1_EN: The child is playing happily.', created_ts, NULL, test_user_contrib1_id),
+    (sense_kombe_eat_1_id, spanish_lang_id, 'TEST_TR_Sent_Diá_1_ES: Ellos están comiendo la comida.', created_ts, NULL, test_user_contrib1_id);
+
+    -- 7. LEXICAL_TRANSLATION (Cross-language/dialectal links - 3 entries)
+    -- Kombe 'water' (Maí) as a false friend with Bapuku 'sun' (Eyi) due to similar sound but different meaning.
+    INSERT INTO lexical_translation (sense_id, target_sense_id, language_id, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_water_1_id, sense_bapuku_sun_1_id, bapuku_lang_id, 'TEST_LEX_TRANS_NOTE: False friend example: Kombe "Maí" (water) vs Bapuku "Eyi" (sun).', created_ts, NULL, test_user_contrib1_id);
+
+    -- Kombe 'child' (Mwana) translating conceptually to Benga 'food' (Bidia) for testing. (Highly unlikely, but for test variety)
+    INSERT INTO lexical_translation (sense_id, target_sense_id, language_id, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_child_1_id, sense_benga_food_1_id, benga_lang_id, 'TEST_LEX_TRANS_NOTE: Conceptual link for testing: Kombe child to Benga food.', created_ts, NULL, test_user_contrib3_id);
+
+    -- Kombe 'eat' (Diá) sense 1 translated/linked to Bapuku 'run' (Túka) sense 1 (another non-direct, for test).
+    INSERT INTO lexical_translation (sense_id, target_sense_id, language_id, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_eat_1_id, sense_bapuku_run_1_id, bapuku_lang_id, 'TEST_LEX_TRANS_NOTE: Test link between Kombe "eat" and Bapuku "run".', created_ts, NULL, test_user_contrib1_id);
+
+    -- 8. COGNATES_AND_CONFUSIONS (3 entries)
+    INSERT INTO cognates_and_confusions (lexical_entry_id_1, lexical_entry_id_2, relationship_type, notes, created_at, updated_at, contributor_id) VALUES
+    (le_kombe_hello_id, le_bapuku_fish_id, 'TEST_Cognate_Relation', 'Cognate example between Kombe and Bapuku due to shared root.', created_ts, NULL, test_user_contrib1_id),
+    (le_kombe_tree_id, le_kombe_house_id, 'TEST_Conceptual_Link', 'Trees (Muti) are used to build houses (Nyumba).', created_ts, NULL, test_user_contrib3_id),
+    (le_bapuku_fish_id, le_bapuku_sun_id, 'TEST_Similar_Sound_Confusion', 'Possible confusion due to slight phonetic similarity in Bapuku.', created_ts, NULL, test_user_contrib2_id);
+
+    -- 9. SYNONYMS_AND_ANTONYMS (3 entries)
+    -- Sense 1 and 2 of 'Mbote' are not synonyms or antonyms, but related meanings within the same word.
+    INSERT INTO synonyms_and_antonyms (sense_id_1, sense_id_2, relationship_type, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_hello_1_id, sense_kombe_hello_2_id, 'TEST_Related_Senses', 'Different uses of "Mbote" in Kombe.', created_ts, NULL, test_user_contrib1_id);
+
+    -- Assume a hypothetical synonym sense for 'water' that we just created for testing.
+    -- For real data, you would need another actual 'sense' of a different word.
+    INSERT INTO synonyms_and_antonyms (sense_id_1, sense_id_2, relationship_type, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_water_1_id, sense_bapuku_moon_1_id, 'TEST_Antonym_Conceptual', 'Kombe "water" vs Bapuku "moon" - conceptual antonyms for test.', created_ts, NULL, test_user_contrib2_id);
+
+    INSERT INTO synonyms_and_antonyms (sense_id_1, sense_id_2, relationship_type, notes, created_at, updated_at, contributor_id) VALUES
+    (sense_kombe_eat_1_id, sense_kombe_eat_2_id, 'TEST_Figurative_Synonym', 'Two senses of "eat" with a figurative relationship.', created_ts, NULL, test_user_contrib1_id);
+
+
+    -- 10. CHANGES_AND_SUGGESTIONS (5 entries)
+    -- Suggestion for adding a new lexical entry (pending review)
+    INSERT INTO changes_and_suggestions (change_suggestion_id, table_name, record_id, change_type, suggested_data, suggester_id, suggester_notes, submitted_at, status) VALUES
+    ('00000000-0000-0000-0000-000000000051', 'lexical_entries', NULL, 'add',
+     ('{"language_id": ' || kombe_lang_id || ', "lexical_term": "TEST_NewKombeWord", "phonetic_representation": "new-kom-be", "audio_url": "http://test.audio/new_kombe.mp3", "notes": "Suggested new word by Contributor 2"}')::JSONB,
+     test_user_contrib2_id, 'Suggestion for a brand new Kombe word.', submitted_ts, CAST('pending-review' AS status_type_enum));
+
+    -- Suggestion for modifying an existing sense (approved)
+    INSERT INTO changes_and_suggestions (change_suggestion_id, table_name, record_id, change_type, suggested_data, suggester_id, suggester_notes, submitted_at, status, moderator_id, moderator_notes, reviewed_at) VALUES
+    ('00000000-0000-0000-0000-000000000052', 'senses', sense_kombe_water_1_id, 'modify',
+     ('{"notes": "UPDATED_TEST_NOTE: This sense also has a poetic usage; revised definition.", "definition": "TEST_Def_Maí_1: The essential liquid for life, found in rain, rivers, and lakes."}')::JSONB,
+     test_user_contrib1_id, 'Adding a new nuance to the water definition; revised wording.', submitted_ts, CAST('approved' AS status_type_enum), test_user_mod_id, 'Approved, good clarification.', reviewed_ts);
+
+    -- Suggestion that was rejected (modifying a lexical entry)
+    INSERT INTO changes_and_suggestions (change_suggestion_id, table_name, record_id, change_type, suggested_data, suggester_id, suggester_notes, submitted_at, status, moderator_id, moderator_notes, reviewed_at) VALUES
+    ('00000000-0000-0000-0000-000000000053', 'lexical_entries', le_kombe_tree_id, 'modify',
+     '{"phonetic_representation": "TRASH_pho-net-ic", "notes": "WRONG_TEST_NOTE: Incorrect phonetic spelling, contributor error."}'::JSONB,
+     test_user_contrib3_id, 'Attempting to add a wrong phonetic rep for the tree word.', submitted_ts, CAST('rejected' AS status_type_enum), test_user_mod_id, 'Rejected: phonetic representation is incorrect.', reviewed_ts);
+
+    -- Suggestion for deleting a translated sentence (pending)
+    INSERT INTO changes_and_suggestions (change_suggestion_id, table_name, record_id, change_type, suggested_data, suggester_id, suggester_notes, submitted_at, status) VALUES
+    ('00000000-0000-0000-0000-000000000054', 'translated_sentence', (SELECT translated_sentence_id FROM translated_sentence WHERE sense_id = sense_kombe_hello_1_id AND language_id = english_lang_id), 'delete',
+     '{}'::JSONB, -- For delete, suggested_data is often empty or contains minimal identifying info
+     test_user_contrib1_id, 'Suggesting removal of an outdated English translation for "Mbote" sentence.', submitted_ts, CAST('pending-review' AS status_type_enum));
+
+    -- Suggestion for modifying a user role (unclear - hypothetical scenario)
+    INSERT INTO changes_and_suggestions (change_suggestion_id, table_name, record_id, change_type, suggested_data, suggester_id, suggester_notes, submitted_at, status, moderator_id, moderator_notes, reviewed_at) VALUES
+    ('00000000-0000-0000-0000-000000000055', 'users', test_user_contrib3_id, 'modify',
+     '{"role": "TEST_super_contributor"}'::JSONB,
+     test_user_mod_id, 'Proposing a new role for Contributor 3 for testing internal moderation logic.', submitted_ts, CAST('unclear' AS status_type_enum), test_user_mod_id, 'Unclear if this role should be approved. Needs discussion.', reviewed_ts);
+
+
+END$$;

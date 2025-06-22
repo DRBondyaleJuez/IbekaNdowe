@@ -1,0 +1,152 @@
+-- PostgreSQL Dummy Test Data Delete Script
+
+-- This script deletes all dummy data previously inserted using the
+-- 'PostgreSQL Dummy Test Data Inserts' script.
+-- Deletion order is crucial to respect foreign key constraints.
+-- It uses the same UUIDs and fetches dynamically generated serial IDs
+-- to ensure only the test data is removed.
+
+DO $$
+DECLARE
+    -- User UUIDs (must match those used in the insert script)
+    test_user_mod_id UUID := '00000000-0000-0000-0000-000000000001';
+    test_user_contrib1_id UUID := '00000000-0000-0000-0000-000000000002';
+    test_user_contrib2_id UUID := '00000000-0000-0000-0000-000000000003';
+    test_user_contrib3_id UUID := '00000000-0000-0000-0000-000000000004';
+    test_user_reviewer_id UUID := '00000000-0000-0000-0000-000000000005';
+
+    -- Array of all dummy user IDs for convenient use
+    dummy_user_ids UUID[] := ARRAY[
+        test_user_mod_id,
+        test_user_contrib1_id,
+        test_user_contrib2_id,
+        test_user_contrib3_id,
+        test_user_reviewer_id
+    ];
+
+    -- Language IDs (must be fetched dynamically as they are serial)
+    kombe_lang_id INTEGER;
+    bapuku_lang_id INTEGER;
+    benga_lang_id INTEGER;
+    spanish_lang_id INTEGER;
+    english_lang_id INTEGER;
+    french_lang_id INTEGER;
+
+    -- Lexical Entry UUIDs (must match those used in the insert script)
+    le_kombe_hello_id UUID := '00000000-0000-0000-0000-000000000011';
+    le_kombe_water_id UUID := '00000000-0000-0000-0000-000000000012';
+    le_bapuku_fish_id UUID := '00000000-0000-0000-0000-000000000013';
+    le_kombe_tree_id UUID := '00000000-0000-0000-0000-000000000014';
+    le_bapuku_sun_id UUID := '00000000-0000-0000-0000-000000000015';
+    le_kombe_house_id UUID := '00000000-0000-0000-0000-000000000016';
+    le_bapuku_moon_id UUID := '00000000-0000-0000-0000-000000000017';
+    le_benga_food_id UUID := '00000000-0000-0000-0000-000000000018';
+    le_kombe_child_id UUID := '00000000-0000-0000-0000-000000000019';
+    le_kombe_eat_id UUID := '00000000-0000-0000-0000-00000000001A';
+    le_bapuku_run_id UUID := '00000000-0000-0000-0000-00000000001B';
+
+    -- Array of all dummy lexical entry IDs for convenient use
+    dummy_lexical_entry_ids UUID[] := ARRAY[
+        le_kombe_hello_id,
+        le_kombe_water_id,
+        le_bapuku_fish_id,
+        le_kombe_tree_id,
+        le_bapuku_sun_id,
+        le_kombe_house_id,
+        le_bapuku_moon_id,
+        le_benga_food_id,
+        le_kombe_child_id,
+        le_kombe_eat_id,
+        le_bapuku_run_id
+    ];
+
+BEGIN
+
+    -- Fetch language IDs (these queries need to run first to get the correct IDs)
+    SELECT language_id INTO kombe_lang_id FROM languages WHERE language_name = 'Kombe_TEST';
+    SELECT language_id INTO bapuku_lang_id FROM languages WHERE language_name = 'Bapuku_TEST';
+    SELECT language_id INTO benga_lang_id FROM languages WHERE language_name = 'Benga_TEST';
+    SELECT language_id INTO spanish_lang_id FROM languages WHERE language_name = 'Spanish_TEST';
+    SELECT language_id INTO english_lang_id FROM languages WHERE language_name = 'English_TEST';
+    SELECT language_id INTO french_lang_id FROM languages WHERE language_name = 'French_TEST';
+
+    -- 1. Delete from changes_and_suggestions (depends on users, lexical_entries, senses)
+    -- Targeting by suggester_id and known change_suggestion_id UUIDs
+    RAISE NOTICE 'Deleting from changes_and_suggestions...';
+    DELETE FROM changes_and_suggestions
+    WHERE suggester_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com')
+       OR moderator_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com')
+       OR change_suggestion_id IN ('00000000-0000-0000-0000-000000000051', '00000000-0000-0000-0000-000000000052', '00000000-0000-0000-0000-000000000053', '00000000-0000-0000-0000-000000000054', '00000000-0000-0000-0000-000000000055');
+
+    -- 2. Delete from synonyms_and_antonyms (depends on senses, users)
+    -- Targeting by senses linked to our dummy lexical entries or by contributor
+    RAISE NOTICE 'Deleting from synonyms_and_antonyms...';
+    DELETE FROM synonyms_and_antonyms
+    WHERE sense_id_1 IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR sense_id_2 IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+
+    -- 3. Delete from cognates_and_confusions (depends on lexical_entries, users)
+    -- Targeting by lexical entry IDs or by contributor
+    RAISE NOTICE 'Deleting from cognates_and_confusions...';
+    DELETE FROM cognates_and_confusions
+    WHERE lexical_entry_id_1 IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%')
+       OR lexical_entry_id_2 IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%')
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 4. Delete from lexical_translation (depends on senses, languages, users)
+    -- Targeting by senses linked to our dummy lexical entries or by contributor
+    RAISE NOTICE 'Deleting from lexical_translation...';
+    DELETE FROM lexical_translation
+    WHERE sense_id IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR target_sense_id IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 5. Delete from translated_sentence (depends on senses, languages, users)
+    -- Targeting by senses linked to our dummy lexical entries or by contributor/language
+    RAISE NOTICE 'Deleting from translated_sentence...';
+    DELETE FROM translated_sentence
+    WHERE sense_id IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR language_id IN (spanish_lang_id, english_lang_id, french_lang_id) -- Target specific dummy translation languages
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 6. Delete from translated_definitions (depends on senses, languages, users)
+    -- Targeting by senses linked to our dummy lexical entries or by contributor/language
+    RAISE NOTICE 'Deleting from translated_definitions...';
+    DELETE FROM translated_definitions
+    WHERE sense_id IN (SELECT sense_id FROM senses WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%'))
+       OR language_id IN (spanish_lang_id, english_lang_id, french_lang_id)
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 7. Delete from senses (depends on lexical_entries, users)
+    -- Targeting by lexical entry IDs or by contributor
+    RAISE NOTICE 'Deleting from senses...';
+    DELETE FROM senses
+    WHERE lexical_entry_id IN (SELECT lexical_entry_id FROM lexical_entries WHERE lexical_term LIKE 'TEST_%')
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 8. Delete from lexical_entries (depends on languages, users)
+    -- Targeting by the 'TEST_' prefix in lexical_term or by contributor
+    RAISE NOTICE 'Deleting from lexical_entries...';
+    DELETE FROM lexical_entries
+    WHERE lexical_term LIKE 'TEST_%'
+       OR language_id IN (kombe_lang_id, bapuku_lang_id, benga_lang_id) -- Specific dummy Ndowe languages
+       OR contributor_id IN (SELECT user_id FROM users WHERE email LIKE 'TEST_%@example.com');
+
+    -- 9. Delete from languages (no incoming FKs that need prior deletion within this dummy set)
+    -- Targeting by the 'TEST_' prefix in language_name
+    RAISE NOTICE 'Deleting from languages...';
+    DELETE FROM languages
+    WHERE language_name LIKE '%_TEST%';
+
+    -- 10. Delete from users (no incoming FKs that need prior deletion within this dummy set)
+    -- Targeting by email pattern (e.g., 'TEST_') or the predefined UUIDs
+    RAISE NOTICE 'Deleting from users...';
+    DELETE FROM users
+    WHERE email LIKE 'TEST_%@example.com'
+       OR user_id IN (SELECT unnest(dummy_user_ids)); -- Using the array of user IDs
+
+    RAISE NOTICE 'Dummy data deletion complete.';
+
+END$$;

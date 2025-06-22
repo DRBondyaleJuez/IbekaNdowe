@@ -1,0 +1,143 @@
+CREATE DATABASE ndowe_database;
+
+CREATE TABLE users (
+    user_id UUID PRIMARY KEY,
+    email text UNIQUE NOT NULL,
+    role text
+);
+
+CREATE TYPE language_type_enum AS ENUM('ndowe', 'translation_target');
+
+CREATE TABLE languages (
+    language_id serial PRIMARY KEY,
+    language_name varchar(100) UNIQUE NOT NULL,
+    language_code varchar(10) UNIQUE NOT NULL,
+    language_type language_type_enum
+);
+
+CREATE TYPE status_type_enum AS ENUM('pending-review', 'approved', 'rejected', 'unclear');
+
+CREATE TABLE lexical_entries (
+    lexical_entry_id UUID PRIMARY KEY,
+    language_id integer,
+    lexical_term text NOT NULL,
+    phonetic_representation VARCHAR(100),
+    alternative_representations text[],
+    notes text,
+    audio_url text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (language_id) REFERENCES languages(language_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Consolidated senses table including Ndowe definition and linking to lexical_entries
+CREATE TABLE senses (
+    sense_id serial PRIMARY KEY,
+    lexical_entry_id UUID NOT NULL, -- Direct link to the lexical entry
+    sense_order integer, -- To order multiple senses for a single lexical entry
+    definition text NOT NULL,
+    type_of_lexicon text,
+    conceptual_domain text,
+	sentence text NOT NULL,
+    audio_url_sentence text,
+    notes text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (lexical_entry_id) REFERENCES lexical_entries(lexical_entry_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Translated definitions for a specific sense
+CREATE TABLE translated_definitions (
+    translated_definition_id serial PRIMARY KEY,
+    sense_id integer NOT NULL,
+    language_id integer NOT NULL,
+    translated_definition_text text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (sense_id) REFERENCES senses(sense_id),
+    FOREIGN KEY (language_id) REFERENCES languages(language_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Translated example sentences
+CREATE TABLE translated_sentence (
+    translated_sentence_id serial PRIMARY KEY,
+    sense_id integer NOT NULL,
+    language_id integer NOT NULL,
+    translated_sentence_text text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (sense_id) REFERENCES senses(sense_id),
+    FOREIGN KEY (language_id) REFERENCES languages(language_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Lexical translation (now linking a sense to another lexical entry)
+CREATE TABLE lexical_translation (
+    lexical_translation_id serial PRIMARY KEY,
+    sense_id integer NOT NULL, -- The sense being translated
+    target_sense_id integer NOT NULL, -- The lexical entry it translates to (could be another Ndowe word or a word in a target language, if modeled as such)
+    language_id integer NOT NULL,
+	notes text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (sense_id) REFERENCES senses(sense_id),
+    FOREIGN KEY (target_sense_id) REFERENCES senses(sense_id),
+    FOREIGN KEY (language_id) REFERENCES languages(language_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Cognates and confusions remain largely the same, linking two lexical entries
+CREATE TABLE cognates_and_confusions (
+    cognate_and_confusion_id serial PRIMARY KEY,
+    lexical_entry_id_1 UUID NOT NULL,
+    lexical_entry_id_2 UUID NOT NULL,
+    relationship_type text, -- e.g., 'cognate', 'false friend', 'dialectal variant'
+    notes text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (lexical_entry_id_1) REFERENCES lexical_entries(lexical_entry_id),
+    FOREIGN KEY (lexical_entry_id_2) REFERENCES lexical_entries(lexical_entry_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- Synonyms and antonyms should link two specific senses, not just lexical entries
+CREATE TABLE synonyms_and_antonyms (
+    synonym_antonym_id serial PRIMARY KEY, -- Renamed for clarity
+    sense_id_1 integer NOT NULL,
+    sense_id_2 integer NOT NULL,
+    relationship_type text, -- 'synonym', 'antonym'
+    notes text,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP,
+    contributor_id UUID,
+    FOREIGN KEY (sense_id_1) REFERENCES senses(sense_id),
+    FOREIGN KEY (sense_id_2) REFERENCES senses(sense_id),
+    FOREIGN KEY (contributor_id) REFERENCES users(user_id)
+);
+
+-- NEW: Changes and Suggestions Table
+CREATE TABLE changes_and_suggestions (
+    change_suggestion_id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Use UUID for PK
+    table_name TEXT NOT NULL, -- e.g., 'lexical_entries', 'senses', 'example_sentence'
+    record_id UUID, -- UUID, can be NULL if it's an 'add' operation for a new record
+    change_type TEXT NOT NULL, -- 'add', 'modify', 'delete'
+    suggested_data JSONB NOT NULL, -- Stores the proposed data (full new record for 'add', or just changed fields for 'modify')
+    suggester_id UUID NOT NULL, -- The user who made the suggestion
+    suggester_notes TEXT,
+    submitted_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    status status_type_enum NOT NULL DEFAULT 'pending-review', -- Status of this specific suggestion
+    moderator_id UUID, -- The user who reviewed the suggestion
+    moderator_notes TEXT,
+    reviewed_at TIMESTAMP,
+    FOREIGN KEY (suggester_id) REFERENCES users(user_id),
+    FOREIGN KEY (moderator_id) REFERENCES users(user_id)
+);

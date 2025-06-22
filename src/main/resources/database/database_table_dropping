@@ -1,0 +1,21 @@
+-- DANGER: Running these queries will permanently delete all data in these tables.
+-- Make sure you have a backup if you need to preserve any data!
+
+-- Drop tables that depend on other tables first, or use CASCADE.
+-- Dropping in reverse order of creation / dependency is safest without CASCADE,
+-- but CASCADE handles the dependencies for us here.
+
+DROP TABLE IF EXISTS changes_and_suggestions CASCADE;
+DROP TABLE IF EXISTS synonyms_and_antonyms CASCADE;
+DROP TABLE IF EXISTS cognates_and_confusions CASCADE;
+DROP TABLE IF EXISTS lexical_translation CASCADE;
+DROP TABLE IF EXISTS translated_sentence CASCADE;
+DROP TABLE IF EXISTS translated_definitions CASCADE;
+DROP TABLE IF EXISTS senses CASCADE;
+DROP TABLE IF EXISTS lexical_entries CASCADE;
+DROP TABLE IF EXISTS languages CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Also drop the custom types, as tables might depend on them.
+DROP TYPE IF EXISTS status_type_enum CASCADE;
+DROP TYPE IF EXISTS language_type_enum CASCADE;

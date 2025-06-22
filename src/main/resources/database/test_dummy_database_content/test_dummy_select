@@ -1,0 +1,143 @@
+SELECT *
+FROM languages;
+
+SELECT *
+FROM lexical_entries;
+
+SELECT *
+FROM senses;
+
+SELECT*
+FROM lexical_translation;
+
+SELECT
+    -- Information about the Input (Source) Word and its Specific Sense
+    input_le.lexical_term AS input_word,
+    input_le.phonetic_representation AS input_word_phonetic,
+    input_le.audio_url AS input_word_audio_url,
+    input_lang.language_name AS input_language_name,
+    input_s.sense_order AS input_sense_order,
+    input_s.definition AS input_sense_definition,                 -- Definition of the input word's sense (in its own language)
+    input_s.type_of_lexicon AS input_sense_type_of_lexicon,
+    input_s.conceptual_domain AS input_sense_conceptual_domain,
+    input_s.sentence AS input_sense_example_sentence,             -- Example sentence for the input word's sense (in its own language)
+    input_s.audio_url_sentence AS input_sense_example_audio_url
+FROM
+    -- Start with the Lexical Entry of the word you want to translate (e.g., Spanish word)
+    lexical_entries AS input_le
+JOIN
+    languages AS input_lang
+    ON input_le.language_id = input_lang.language_id
+    AND input_lang.language_name = 'English_DUMMY' -- PARAMETER 2: inputLanguageName (e.g., 'ESD')
+JOIN
+    -- Get all senses for the input word
+    senses AS input_s
+    ON input_le.lexical_entry_id = input_s.lexical_entry_id
+JOIN
+    lexical_translation AS lt
+    ON input_s.sense_id = lt.sense_id; -- PARAMETER 1: wordToTranslate (e.g., 'DUMMY Hola')
+WHERE
+    input_le.lexical_term ILIKE 'DUMMY Water';
+
+
+
+
+SELECT
+    -- Information about the Input (Source) Word and its Specific Sense
+    input_le.lexical_term AS input_word,
+    input_le.phonetic_representation AS input_word_phonetic,
+    input_le.audio_url AS input_word_audio_url,
+    input_lang.language_name AS input_language_name,
+    input_s.sense_order AS input_sense_order,
+    input_s.definition AS input_sense_definition,                 -- Definition of the input word's sense (in its own language)
+    input_s.type_of_lexicon AS input_sense_type_of_lexicon,
+    input_s.conceptual_domain AS input_sense_conceptual_domain,
+    input_s.sentence AS input_sense_example_sentence,             -- Example sentence for the input word's sense (in its own language)
+    input_s.audio_url_sentence AS input_sense_example_audio_url,
+
+	-- NEW: Translations of the Input Word's Definition and Example Sentence into the Output Language
+    td_input_to_output.translated_definition_text AS input_sense_definition_in_output_language,
+    ts_input_to_output.translated_sentence_text AS input_sense_example_in_output_language,
+
+
+    -- Information about the Output (Translated) Word and its Specific Sense
+    output_le.lexical_term AS translated_word,
+    output_le.phonetic_representation AS translated_word_phonetic,
+    output_le.audio_url AS translated_word_audio_url,
+    output_lang.language_name AS translated_language_name,
+    output_s.definition AS translated_sense_definition,            -- Definition of the translated word's sense (in its own language, e.g., Ndowe)
+    output_s.type_of_lexicon AS translated_sense_type_of_lexicon,
+    output_s.conceptual_domain AS translated_sense_conceptual_domain,
+    output_s.sentence AS translated_sense_example_sentence,        -- Example sentence for the translated word's sense (in its own language, e.g., Ndowe)
+    output_s.audio_url_sentence AS translated_sense_example_audio_url,
+
+    -- Translations of the Translated Word's Definition and Example Sentence
+    -- back into the Input Language (e.g., Spanish translation of Ndowe definition/example)
+    td_output_to_input.translated_definition_text AS translated_sense_definition_in_input_language,
+    ts_output_to_input.translated_sentence_text AS translated_sense_example_in_input_language
+
+FROM
+    -- Start with the Lexical Entry of the word you want to translate (e.g., Spanish word)
+    lexical_entries AS input_le
+JOIN
+    languages AS input_lang
+    ON input_le.language_id = input_lang.language_id
+    AND input_lang.language_name = 'Kombe_TEST' -- PARAMETER 2: inputLanguageName (e.g., 'ESD')
+JOIN
+    -- Get all senses for the input word
+    senses AS input_s
+    ON input_le.lexical_entry_id = input_s.lexical_entry_id
+
+-- Now, link to the lexical_translation table where the 'input_s' is the source sense
+JOIN
+    lexical_translation AS lt
+    ON input_s.sense_id = lt.sense_id
+JOIN
+    -- Ensure the target of this translation link is in the desired output language
+    languages AS lt_target_lang
+    ON lt.language_id = lt_target_lang.language_id
+    AND lt_target_lang.language_name = 'Bapuku_TEST' -- PARAMETER 3: outputLanguageName (e.g., 'KQD')
+
+-- Get the actual Sense of the translated word (the 'target_sense_id')
+JOIN
+    senses AS output_s
+    ON lt.target_sense_id = output_s.sense_id
+JOIN
+    -- Get the Lexical Entry associated with the translated sense
+    lexical_entries AS output_le
+    ON output_s.lexical_entry_id = output_le.lexical_entry_id
+JOIN
+    -- Confirm the language of the output lexical entry
+    languages AS output_lang
+    ON output_le.language_id = output_lang.language_id
+    AND output_lang.language_name = 'Bapuku_TEST' -- This parameter ensures the translated word is indeed in the expected output language.
+                                          -- It's redundant with lt_target_lang.language_code if your data is perfectly consistent,
+                                          -- but good for explicit filtering and ensuring the final translation belongs to the output language.
+
+-- LEFT JOIN to get the definition of the translated sense, translated BACK into the input language
+LEFT JOIN
+    translated_definitions AS td_output_to_input
+    ON output_s.sense_id = td_output_to_input.sense_id
+    AND td_output_to_input.language_id = input_lang.language_id -- Join condition: definition translation in the input language
+
+-- LEFT JOIN to get the example sentence of the translated sense, translated BACK into the input language
+LEFT JOIN
+    translated_sentence AS ts_output_to_input
+    ON output_s.sense_id = ts_output_to_input.sense_id
+    AND ts_output_to_input.language_id = input_lang.language_id -- Join condition: example translation in the input language
+
+-- NEW: LEFT JOIN to get the definition of the input sense, translated INTO the output language
+LEFT JOIN
+    translated_definitions AS td_input_to_output
+    ON input_s.sense_id = td_input_to_output.sense_id
+    AND td_input_to_output.language_id = output_lang.language_id -- Join condition: definition translation in the output language
+
+-- NEW: LEFT JOIN to get the example sentence of the input sense, translated INTO the output language
+LEFT JOIN
+    translated_sentence AS ts_input_to_output
+    ON input_s.sense_id = ts_input_to_output.sense_id
+    AND ts_input_to_output.language_id = output_lang.language_id -- Join condition: example translation in the output language
+WHERE
+    input_le.lexical_term ILIKE 'TEST_Máí' -- PARAMETER 1: wordToTranslate (e.g., 'DUMMY Hola')
+ORDER BY
+    input_s.sense_order;          -- Order first by the sense order of the input word
