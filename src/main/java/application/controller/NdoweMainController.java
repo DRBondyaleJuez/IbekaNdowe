@@ -4,6 +4,7 @@ import application.model.TranslatedWordContent;
 import org.springframework.stereotype.Service;
 import application.persistence.database.DatabaseManager;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -21,6 +22,10 @@ public class NdoweMainController {
 
     public boolean editWord(){
         return databaseManager.editWord();
+    }
+
+    public List<String> getLanguageList() {
+        return databaseManager.getLanguageList();
     }
 
     public Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {

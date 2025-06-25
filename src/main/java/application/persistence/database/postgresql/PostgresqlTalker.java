@@ -11,6 +11,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public class PostgresqlTalker implements DatabaseTalker {
@@ -132,7 +134,6 @@ public class PostgresqlTalker implements DatabaseTalker {
             return Optional.of(mapper.mapResultSetToTranslatedWordContent(resultSetOptional.get()));
 
         } catch (SQLException sqlException) {
-            //Todo: think or ask LLM for a solution to what to return so it contemplates the ok, empty, error scenarios before responding with different http
             //logger.error("Unable to perform word  translation search", sqlException);
             String errorQuerySummary = "Word search SQL error:" +
                     "- Word input: " + searchedWord + "\n" +
@@ -141,6 +142,29 @@ public class PostgresqlTalker implements DatabaseTalker {
 
             throw new WordQuerySQLException(sqlException, errorQuerySummary);
         }
+    }
+
+    @Override
+    public List<String> getLanguageList() {
+        String query = "SELECT language_name FROM languages;";
+        PreparedStatement preparedStatement = createPreparedStatement(query).get();
+
+        try {
+            ResultSet resultSet = executeQuery(preparedStatement).get();
+            List<String> languageList = new ArrayList<String>();
+
+            while(resultSet.next()) {
+                languageList.add(resultSet.getString("language_name"));
+            }
+            return languageList;
+
+        } catch (SQLException sqlException) {
+            //logger.error("Unable to perform word  translation search", sqlException);
+            String errorQuerySummary = "Language list SQL error";
+
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
+        }
+
     }
 
     @Override

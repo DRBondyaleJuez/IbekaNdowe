@@ -4,6 +4,7 @@ import application.persistence.database.postgresql.PostgresqlTalker;
 import application.model.NdoweWord;
 import application.model.TranslatedWordContent;
 
+import java.util.List;
 import java.util.Optional;
 
 public class DatabaseManager {
@@ -27,6 +28,10 @@ public class DatabaseManager {
 
     public synchronized boolean editWord(){
         return true;
+    }
+
+    public List<String> getLanguageList() {
+        return databaseTalker.getLanguageList();
     }
 
     public synchronized Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {

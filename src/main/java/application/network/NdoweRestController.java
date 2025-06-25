@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -47,7 +48,7 @@ public class NdoweRestController {
     // GET API to fetch all translated details
     @GetMapping("/translated-word-content")
     public ResponseEntity<TranslatedWordContent> getTranslatedWordContent(@RequestParam String searchedWord, @RequestParam String inputLanguage, @RequestParam String outputLanguage) {
-        System.out.println(searchedWord + " " + inputLanguage + " " + outputLanguage);
+        System.out.println("Input word: " + searchedWord + " in language " + inputLanguage + ". Getting translation in: " + outputLanguage + " ...");
         Optional<TranslatedWordContent> searchedTranslatedWordContent = mainController.getTranslatedWordContent(searchedWord, inputLanguage, outputLanguage);
 
         if (searchedTranslatedWordContent.isEmpty()) {
@@ -55,6 +56,15 @@ public class NdoweRestController {
         }
 
         return new ResponseEntity<>(searchedTranslatedWordContent.get(), HttpStatus.OK);
+    }
+
+    // GET API to fetch all languages
+    @GetMapping("/languages")
+    public ResponseEntity<List<String>> getLanguageList() {
+        System.out.println("Get language list...");
+        List<String> languages = mainController.getLanguageList();
+
+        return new ResponseEntity<>(languages, HttpStatus.OK);
     }
 
     // POST API to add new details
