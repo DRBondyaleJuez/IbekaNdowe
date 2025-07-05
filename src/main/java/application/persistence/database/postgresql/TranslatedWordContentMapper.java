@@ -54,7 +54,8 @@ public class TranslatedWordContentMapper {
                     rs.getString("input_sense_example_sentence"),
                     rs.getString("input_sense_example_audio_url"),
                     rs.getString("input_sense_definition_in_output_language"),
-                    rs.getString("input_sense_example_in_output_language")
+                    rs.getString("input_sense_example_in_output_language"),
+                    rs.getString("input_sense_example_in_output_language_audio_url")
             );
 
             // Setting currentTranslatedWordDetails
@@ -73,7 +74,8 @@ public class TranslatedWordContentMapper {
                     rs.getString("translated_sense_example_sentence"),
                     rs.getString("translated_sense_example_audio_url"),
                     rs.getString("translated_sense_definition_in_input_language"),
-                    rs.getString("translated_sense_example_in_input_language")
+                    rs.getString("translated_sense_example_in_input_language"),
+                    rs.getString("translated_sense_example_in_input_language_audio_url")
             );
 
             // Setting currentTranslationEntry

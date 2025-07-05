@@ -56,6 +56,7 @@ public class PostgresqlTalker implements DatabaseTalker {
                 "    input_s.audio_url_sentence AS input_sense_example_audio_url,\n" +
                 "    td_input_to_output.translated_definition_text AS input_sense_definition_in_output_language,\n" +
                 "    ts_input_to_output.translated_sentence_text AS input_sense_example_in_output_language,\n" +
+                "    ts_input_to_output.translated_sentence_audio_url AS input_sense_example_in_output_language_audio_url,\n" +
                 "    output_le.lexical_term AS translated_word,\n" +
                 "    output_le.phonetic_representation AS translated_word_phonetic,\n" +
                 "    output_le.audio_url AS translated_word_audio_url,\n" +
@@ -67,6 +68,7 @@ public class PostgresqlTalker implements DatabaseTalker {
                 "    output_s.audio_url_sentence AS translated_sense_example_audio_url,\n" +
                 "    td_output_to_input.translated_definition_text AS translated_sense_definition_in_input_language,\n" +
                 "    ts_output_to_input.translated_sentence_text AS translated_sense_example_in_input_language\n" +
+                "    ts_output_to_input.translated_sentence_audio-url AS translated_sense_example_in_input_language_audio_url\n" +
                 "FROM\n" +
                 "    lexical_entries AS input_le\n" +
                 "JOIN\n" +

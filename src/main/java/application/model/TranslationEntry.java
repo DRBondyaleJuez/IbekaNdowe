@@ -25,6 +25,7 @@ public class TranslationEntry {
         private String inputSenseExampleAudioUrl;
         private String inputSenseDefinitionInOutputLanguage;
         private String inputSenseExampleInOutputLanguage;
+        private String inputSenseExampleInOutputLanguageAudioUrl;
     }
 
     @Data // Generates getters, setters, toString, equals, hashCode
@@ -48,6 +49,7 @@ public class TranslationEntry {
         private String translatedSenseExampleAudioUrl;
         private String translatedSenseDefinitionInInputLanguage; // Translated sense's definition in the input language
         private String translatedSenseExampleInInputLanguage;
+        private String translatedSenseExampleInInputLanguageAudioUrl;
     }
 }
 
