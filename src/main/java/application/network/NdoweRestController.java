@@ -3,6 +3,7 @@ package application.network;
 import application.controller.NdoweMainController;
 import application.model.NdoweWordContent;
 import application.model.TranslatedWordContent;
+import application.model.UpsertedWordContent;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -67,11 +68,22 @@ public class NdoweRestController {
         return new ResponseEntity<>(languages, HttpStatus.OK);
     }
 
+    // GET API to fetch all languages
+    @GetMapping("/lexicon-type")
+    public ResponseEntity<List<String>> getLexiconTypeList() {
+        System.out.println("Get lexicon type list...");
+        List<String> languages = mainController.getLexiconTypeList();
+
+        return new ResponseEntity<>(languages, HttpStatus.OK);
+    }
+
     // POST API to add new details
-    @PostMapping("/new-word")
-    public String addNewWordContent(@RequestBody String jsonBody) {
-        mainController.addNewWord();
-        return "Post jsonBody";
+    @PostMapping("/upsert-word")
+    public ResponseEntity<Boolean> upsertWordContent(@RequestBody UpsertedWordContent upsertedWordContent) {
+        mainController.upsertWord(upsertedWordContent);
+        System.out.println("UPSERT WORD");
+        System.out.println("Lexical term:" + upsertedWordContent.getWordText());
+        return new ResponseEntity<>(true, HttpStatus.OK);
     }
 
     // PUT API to add new details

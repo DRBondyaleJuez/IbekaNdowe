@@ -1,6 +1,7 @@
 package application.controller;
 
 import application.model.TranslatedWordContent;
+import application.model.UpsertedWordContent;
 import org.springframework.stereotype.Service;
 import application.persistence.database.DatabaseManager;
 
@@ -24,12 +25,20 @@ public class NdoweMainController {
         return databaseManager.editWord();
     }
 
+    public boolean upsertWord(UpsertedWordContent upsertedWordContent) { return databaseManager.upsertWord(upsertedWordContent); }
+
     public List<String> getLanguageList() {
         return databaseManager.getLanguageList();
+    }
+
+    public List<String> getLexiconTypeList() {
+        return databaseManager.getLexiconTypeList();
     }
 
     public Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {
         return databaseManager.getTranslatedWordContent(searchedWord, inputLanguage, outputLanguage);
     }
+
+
 
 }

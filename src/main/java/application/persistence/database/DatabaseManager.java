@@ -1,5 +1,6 @@
 package application.persistence.database;
 
+import application.model.UpsertedWordContent;
 import application.persistence.database.postgresql.PostgresqlTalker;
 import application.model.NdoweWord;
 import application.model.TranslatedWordContent;
@@ -30,8 +31,14 @@ public class DatabaseManager {
         return true;
     }
 
+    public boolean upsertWord(UpsertedWordContent upsertedWordContent) { return databaseTalker.upsertWord(upsertedWordContent); }
+
     public List<String> getLanguageList() {
         return databaseTalker.getLanguageList();
+    }
+
+    public List<String> getLexiconTypeList() {
+        return databaseTalker.getLexiconTypeList();
     }
 
     public synchronized Optional<TranslatedWordContent> getTranslatedWordContent(String searchedWord, String inputLanguage, String outputLanguage) {

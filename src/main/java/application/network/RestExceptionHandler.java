@@ -10,7 +10,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(WordQuerySQLException.class)
-    public ResponseEntity<RuntimeException> sqlExceptionHandling(WordQuerySQLException ex) {
-        return new ResponseEntity<>(ex, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<RuntimeException> sqlExceptionHandling(WordQuerySQLException exception) {
+        return new ResponseEntity<>(exception, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

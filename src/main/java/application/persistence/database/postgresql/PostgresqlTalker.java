@@ -3,6 +3,7 @@ package application.persistence.database.postgresql;
 import application.exceptions.WordQuerySQLException;
 import application.model.NdoweWord;
 import application.model.TranslatedWordContent;
+import application.model.UpsertedWordContent;
 import application.utils.PropertiesReader;
 import application.persistence.database.DatabaseTalker;
 
@@ -14,6 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public class PostgresqlTalker implements DatabaseTalker {
     //private static final Logger logger = LogManager.getLogger(PostgresqlTalker.class);
@@ -147,6 +149,265 @@ public class PostgresqlTalker implements DatabaseTalker {
     }
 
     @Override
+    public boolean upsertWord(UpsertedWordContent upsertedWordContent) {
+        UUID lexicalEntryId = upsertLexicalContent(upsertedWordContent).get();
+        List<UpsertedWordContent.SenseContent> upsertedSenseContentList = upsertedWordContent.getSenseContentFields();
+        for (int i = 0; i < upsertedSenseContentList .size(); i++) {
+            Integer senseId = upsertSenseContent(upsertedSenseContentList.get(i), lexicalEntryId, i).get();
+            List<UpsertedWordContent.SenseTranslation> upsertedSenseTranslationList = upsertedSenseContentList.get(i).getSenseTranslations();
+            for (int j = 0; j < upsertedSenseTranslationList .size(); j++) {
+                upsertSenseTranslationContent(upsertedSenseTranslationList.get(j), senseId);
+            }
+        }
+
+
+        if (lexicalEntryId != null) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private Optional<UUID> upsertLexicalContent(UpsertedWordContent upsertedWordContent) {
+        UUID lexicalEntryId = UUID.randomUUID();
+
+        // Print the generated UUID
+        System.out.println("Lexical entry " + upsertedWordContent.getWordText() + " UUID: " + lexicalEntryId);
+
+        // The SQL query to get the language_id and then perform the upsert
+        String query = """
+            WITH lang_id AS (
+                SELECT language_id
+                FROM languages
+                WHERE language_name = ?
+            )
+            INSERT INTO lexical_entries (
+                lexical_entry_id, 
+                language_id, 
+                lexical_term, 
+                phonetic_representation, 
+                audio_url, 
+                created_at, 
+                updated_at
+            )
+            SELECT 
+                ?, 
+                (SELECT language_id FROM lang_id), 
+                ?, 
+                ?, 
+                ?, 
+                CURRENT_TIMESTAMP, 
+                CURRENT_TIMESTAMP
+            ON CONFLICT (lexical_term, phonetic_representation) DO UPDATE SET 
+                audio_url = EXCLUDED.audio_url,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING lexical_entry_id;
+            """;
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            // Set parameters
+            preparedStatement.setString(1, upsertedWordContent.getWordLanguage());
+            preparedStatement.setObject(2, lexicalEntryId);
+            preparedStatement.setString(3, upsertedWordContent.getWordText());
+            preparedStatement.setString(4, upsertedWordContent.getWordPhonetic());
+            preparedStatement.setString(5, upsertedWordContent.getWordAudioUrl());
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    // Return the UUID of the inserted or existing row
+                    return Optional.of((UUID) rs.getObject(1));
+                }
+            }
+        } catch (SQLException sqlException) {
+            String errorQuerySummary = "Word upsertion SQL error:" +
+                    "- Word input: " + upsertedWordContent.getWordText() + "\n" +
+                    "- Input language: " + upsertedWordContent.getWordLanguage() + "\n" + ";";
+
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
+        }
+
+        return Optional.empty(); // Return empty if the operation failed
+    }
+
+    private Optional<Integer> upsertSenseContent(UpsertedWordContent.SenseContent senseContent, UUID lexicalEntryId, int senseOrder) {
+        String query = """
+            WITH existing_sense AS (
+                SELECT 1
+                FROM senses
+                WHERE lexical_entry_id = ? AND definition = ?
+            )
+            , insert_or_update AS (
+                INSERT INTO senses (
+                    lexical_entry_id, 
+                    sense_order, 
+                    definition, 
+                    type_of_lexicon, 
+                    conceptual_domain, 
+                    sentence, 
+                    audio_url_sentence, 
+                    created_at, 
+                    updated_at
+                )
+                SELECT ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                ON CONFLICT (lexical_entry_id, conceptual_domain, type_of_lexicon) DO UPDATE
+                SET 
+                    definition = EXCLUDED.definition, 
+                    sentence = EXCLUDED.sentence,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING sense_id
+            )
+            SELECT sense_id FROM insert_or_update;
+            """;
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            // Check for existing definition first
+            preparedStatement.setObject(1, lexicalEntryId);
+            preparedStatement.setString(2, senseContent.getDefinition());
+
+            // Parameters for the INSERT part of the query
+            preparedStatement.setObject(3, lexicalEntryId);
+            preparedStatement.setInt(4, senseOrder);
+            preparedStatement.setString(5, senseContent.getDefinition());
+            preparedStatement.setString(6, senseContent.getLexiconType());
+            preparedStatement.setString(7, senseContent.getConceptualDomain());
+            preparedStatement.setString(8, senseContent.getSentenceExample());
+            preparedStatement.setString(9, senseContent.getSentenceExampleAudio());
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    int value = rs.getInt("sense_id");
+                    return Optional.of(rs.getInt("sense_id"));
+                }
+            }
+        } catch (SQLException sqlException) {
+            String errorQuerySummary = "Sense upsertion SQL error:" +
+                    "- Sense input: " + senseContent.getDefinition() + "\n" +
+                    "- Word UUID: " + lexicalEntryId + "\n" + ";";
+
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean upsertSenseTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) {
+
+        try {
+            Optional<Integer> definitionTranslationId = upsertDefinitionTranslationContent(senseTranslation, senseId);
+            if (definitionTranslationId.isEmpty() || definitionTranslationId.get() <= 0) {
+                return false;
+            }
+            Optional<Integer> sentenceTranslationId = upsertSentenceTranslationContent(senseTranslation, senseId);
+            if (sentenceTranslationId.isEmpty() || sentenceTranslationId.get() <= 0) {
+                return false;
+            }
+            return true;
+        } catch (SQLException sqlException) {
+            String errorQuerySummary = "Defintion or sentence upsertion SQL error:" +
+                    "- Definition translation input: " + senseTranslation.getDefinitionTranslation() + "\n" +
+                    "- Sentence translation input: " + senseTranslation.getExampleSentenceTranslation() + "\n" +
+                    "- Language translation input: " + senseTranslation.getTranslationLanguage() + "\n" +
+                    "- Sense ID: " + senseId+ "\n" + ";";
+
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
+        }
+    }
+
+    private Optional<Integer> upsertDefinitionTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
+        String query = """
+        WITH lang_id AS (
+            SELECT language_id
+            FROM languages
+            WHERE language_name = ?
+        )
+        INSERT INTO translated_definitions (
+            sense_id,
+            language_id,
+            translated_definition_text,
+            created_at,
+            updated_at
+        )
+        SELECT
+            ?,
+            l.language_id,
+            ?,
+            NOW(),
+            NOW()
+        FROM lang_id l
+        ON CONFLICT (sense_id, language_id) DO UPDATE SET
+            translated_definition_text = EXCLUDED.translated_definition_text,
+            updated_at = NOW()
+        RETURNING *;
+        """;
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            preparedStatement.setObject(1, senseTranslation.getTranslationLanguage());
+            preparedStatement.setInt(2, senseId);
+            preparedStatement.setString(3, senseTranslation.getDefinitionTranslation());
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(rs.getInt("translated_definition_id"));
+                }
+            }
+        } catch (SQLException sqlException) {
+            throw sqlException;
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<Integer> upsertSentenceTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
+        String query = """
+                WITH lang_id AS (
+                    SELECT language_id
+                    FROM languages
+                    WHERE language_name = ?
+                )
+                INSERT INTO translated_sentence (
+                    sense_id,
+                    language_id,
+                    translated_sentence_text,
+                    translated_sentence_audio_url,
+                    created_at,
+                    updated_at
+                )
+                SELECT
+                    ?,
+                    l.language_id,
+                    ?,
+                    ?,
+                    NOW(),
+                    NOW()
+                FROM lang_id l
+                ON CONFLICT (sense_id, language_id) DO UPDATE SET
+                    translated_sentence_text = EXCLUDED.translated_sentence_text,
+                    translated_sentence_audio_url = EXCLUDED."translated_sentence_audio_url",
+                    updated_at = NOW()
+                RETURNING *;
+                """;
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+
+            preparedStatement.setObject(1, senseTranslation.getTranslationLanguage());
+            preparedStatement.setInt(2, senseId);
+            preparedStatement.setString(3, senseTranslation.getExampleSentenceTranslation());
+            preparedStatement.setString(4, senseTranslation.getExampleSentenceTranslationAudio());
+
+            try (ResultSet rs = preparedStatement.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(rs.getInt("translated_sentence_id"));
+                }
+            }
+        } catch (SQLException sqlException) {
+            throw sqlException;
+        }
+
+        return Optional.empty();
+    }
+
+
+    @Override
     public List<String> getLanguageList() {
         String query = "SELECT language_name FROM languages;";
         PreparedStatement preparedStatement = createPreparedStatement(query).get();
@@ -167,6 +428,27 @@ public class PostgresqlTalker implements DatabaseTalker {
             throw new WordQuerySQLException(sqlException, errorQuerySummary);
         }
 
+    }
+
+    @Override
+    public List<String> getLexiconTypeList() {
+        String query = "SELECT DISTINCT type_of_lexicon FROM senses;";
+        PreparedStatement preparedStatement = createPreparedStatement(query).get();
+
+        try {
+            ResultSet resultSet = executeQuery(preparedStatement).get();
+            List<String> lexiconTypeList = new ArrayList<String>();
+
+            while(resultSet.next()) {
+                lexiconTypeList.add(resultSet.getString("type_of_lexicon"));
+            }
+            return lexiconTypeList;
+
+        } catch (SQLException sqlException) {
+            //logger.error("Unable to perform word  translation search", sqlException);
+            String errorQuerySummary = "Lexicon type list SQL error";
+            throw new WordQuerySQLException(sqlException, errorQuerySummary);
+        }
     }
 
     @Override
@@ -395,8 +677,8 @@ public class PostgresqlTalker implements DatabaseTalker {
             connection = DriverManager.getConnection(POSTGRES_URL + DATABASE_NAME, POSTGRES_USER, POSTGRES_PASSWORD);
             return Optional.of(connection);
         } catch (SQLException sqlException) {
-            /*logger.error("Unable to connect to the the database with the following parameters: URL: " + POSTGRES_URL
-                    + ", Database name: " + DATABASE_NAME , sqlException);*/
+            System.out.println("Unable to connect to the database with the following parameters: URL: " + POSTGRES_URL
+                    + ", Database name: " + DATABASE_NAME + "\n" + sqlException);
             return Optional.empty();
         }
     }
