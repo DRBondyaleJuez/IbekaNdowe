@@ -13,10 +13,9 @@ import java.util.List;
 public class CloudinaryPropertiesReader {
     private static final Logger logger = LogManager.getLogger(PropertiesReader.class);
     private static final String urlSource = "/secrets.properties";
-    private static final String POSTGRES_URL_PROPERTY_KEY = "postgres_url";
-    private static final String DATABASE_NAME_PROPERTY_KEY = "database_name";
-    private static final String POSTGRES_USER_PROPERTY_KEY = "postgres_user";
-    private static final String POSTGRES_PASSWORD_PROPERTY_KEY = "postgres_password";
+    private static final String CLOUDINARY_CLOUD_NAME = "cloudinary_cloud_name";
+    private static final String CLOUDINARY_API_KEY = "cloudinary_api_key";
+    private static final String CLOUDINARY_API_SECRET = "cloudinary_api_secret";
     private static final HashMap<String, String> propertiesMap = new HashMap<>();
 
     public void loadAllProperties() {
@@ -24,20 +23,16 @@ public class CloudinaryPropertiesReader {
         checkForMissingProperties();
     }
 
-    public static String getPostgresUrl() {
-        return propertiesMap.get(POSTGRES_URL_PROPERTY_KEY);
+    public static String getCloudinaryCloudName() {
+        return propertiesMap.get(CLOUDINARY_CLOUD_NAME);
     }
 
-    public static String getDatabaseName() {
-        return propertiesMap.get(DATABASE_NAME_PROPERTY_KEY);
+    public static String getCloudinaryApiKey() {
+        return propertiesMap.get(CLOUDINARY_API_KEY);
     }
 
-    public static String getPostgresUser() {
-        return propertiesMap.get(POSTGRES_USER_PROPERTY_KEY);
-    }
-
-    public static String getPostgresPassword() {
-        return propertiesMap.get(POSTGRES_PASSWORD_PROPERTY_KEY);
+    public static String getCloudinaryApiSecret() {
+        return propertiesMap.get(CLOUDINARY_API_SECRET);
     }
 
     private void readAllProperties() {
@@ -68,10 +63,9 @@ public class CloudinaryPropertiesReader {
 
     private void checkForMissingProperties() {
         List<String> propertiesKeys = List.of(
-                POSTGRES_URL_PROPERTY_KEY,
-                DATABASE_NAME_PROPERTY_KEY,
-                POSTGRES_USER_PROPERTY_KEY,
-                POSTGRES_PASSWORD_PROPERTY_KEY
+                CLOUDINARY_CLOUD_NAME,
+                CLOUDINARY_API_KEY,
+                CLOUDINARY_API_SECRET
         );
 
         for (String propertyKey : propertiesKeys) {
