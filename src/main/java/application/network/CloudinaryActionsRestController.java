@@ -25,7 +25,7 @@ import java.util.Map;
 @RequestMapping("/api/cloudinary")
 
 public class CloudinaryActionsRestController {
-    private final CloudinaryController mainController;
+    private final CloudinaryController cloudinaryController;
     // Define acceptable audio MIME types for validation
     private static final List<String> ACCEPTED_AUDIO_TYPES = Arrays.asList(
             "audio/mpeg",
@@ -38,7 +38,7 @@ public class CloudinaryActionsRestController {
     private static final String DUMMY_UPLOAD_DIR = "src/test-dummy-content/";
 
     public CloudinaryActionsRestController(CloudinaryController cloudinaryController) {
-        this.mainController = cloudinaryController;
+        this.cloudinaryController = cloudinaryController;
     }
     // POST API to add new details
     @PostMapping("/upload-audio-file")
@@ -54,7 +54,7 @@ public class CloudinaryActionsRestController {
 
             // 2. Get the original filename (useful for logging or naming)
             String fileName = audioFile.getOriginalFilename();
-            //TODO: Normalize audio Filename with the word recorded and the date
+            //TODO: Normalize audio Filename with the word recorded and the date. Perhaps think abou checking if it already has an audio url
 
             // 3. Get the file's content type (e.g., "audio/mpeg")
             String contentType = audioFile.getContentType();
@@ -87,20 +87,8 @@ public class CloudinaryActionsRestController {
             Files.copy(audioFile.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
             System.out.println("Dummy file saved successfully to: " + filePath.toAbsolutePath());
 
-            // ----------------------------------------------------------------------------------
-            // --- NEXT STEP: Implement the Cloudinary upload logic here!
-            // ----------------------------------------------------------------------------------
-
-            // ************ Placeholder for Cloudinary Upload Service Call ************
-            // You would typically pass 'fileBytes', 'fileName', or the whole 'file' object
-            // to a separate service layer that handles the actual Cloudinary API call.
-
-            // Example of a successful response object (you'd get this from your Cloudinary service)
-            String secureUrl = "https://res.cloudinary.com/your-cloud/video/upload/v123456789/uploaded_audio_TEST_TEST.mp3";
-
-            // ************************************************************************
-
             // Return a success response with the resulting Cloudinary URL
+            String secureUrl = cloudinaryController.uploadAudioFile(audioFile).get();
             return ResponseEntity.ok(secureUrl);
 
         } catch (IOException e) {

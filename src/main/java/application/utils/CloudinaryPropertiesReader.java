@@ -12,7 +12,7 @@ import java.util.List;
 
 public class CloudinaryPropertiesReader {
     private static final Logger logger = LogManager.getLogger(PropertiesReader.class);
-    private static final String urlSource = "/secrets.properties";
+    private static final String urlSource = "/application.properties";
     private static final String CLOUDINARY_CLOUD_NAME = "cloudinary_cloud_name";
     private static final String CLOUDINARY_API_KEY = "cloudinary_api_key";
     private static final String CLOUDINARY_API_SECRET = "cloudinary_api_secret";

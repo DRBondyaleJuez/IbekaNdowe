@@ -2,52 +2,57 @@ package application.controller;
 
 import application.utils.CloudinaryPropertiesReader;
 import application.utils.PropertiesReader;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.util.Map;
+import java.util.Optional;
+
+import static com.cloudinary.utils.ObjectUtils.asMap;
 
 @Service
 public class CloudinaryController {
 
+    private Cloudinary cloudinary;
+    private static final String CLOUD_NAME = CloudinaryPropertiesReader.getCloudinaryCloudName();
+    private static final String CLOUD_API_KEY = CloudinaryPropertiesReader.getCloudinaryApiKey();
+    private static final String CLOUD_API_SECRET = CloudinaryPropertiesReader.getCloudinaryApiSecret();
+
+
     public CloudinaryController() {
+        cloudinary = new Cloudinary(
+            ObjectUtils.asMap(
+                    "cloud_name", CLOUD_NAME,
+                    "api_key", CLOUD_API_KEY,
+                    "api_secret", CLOUD_API_SECRET,
+                    "secure", true
+            )
+        );
     }
 
-    public boolean submitAudioFile(File audioFile) {
-        //TODO: Cloudinary Course: https://training.cloudinary.com/learn/course/introduction-to-cloudinary-for-java-developers-90-minute-course/before-the-lessons/what-to-expect
-        // 1. Define the POST request body (JSON in this example)
-
-        /*String jsonPayload = "{\"title\": \"foo\", \"body\": \"bar\", \"userId\": 1}";
-
-        // 2. Define the target URL
-        String url = "https://jsonplaceholder.typicode.com/posts";
-
-        // 3. Create an HttpClient instance
-        HttpClient client = HttpClient.newHttpClient();
-
-        // 4. Build the POST request
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json") // Specify the content type
-                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload)) // Set the method and body
-                .build();
-
+    public Optional<String> uploadAudioFile(MultipartFile audioFile) throws IOException {
+        //TODO: Verify if the file is already uploaded
+        System.out.println("UPLOADING AUDIO FILE...");
         try {
-            // 5. Send the request and get the response
-            HttpResponse<String> response = client.send(request,
-                    HttpResponse.BodyHandlers.ofString());
-
-            // 6. Print the status code and response body
-            System.out.println("Response Status Code: " + response.statusCode());
-            System.out.println("Response Body:\n" + response.body());
-
+            Map<String,Object> uploadResult = cloudinary.uploader().upload(
+                    audioFile.getBytes(),
+                    ObjectUtils.asMap(
+                            "folder","ndowe-audios",
+                            "resource_type", "raw"
+                    )
+            );
+            String audioUrl = uploadResult.get("secure_url").toString();
+            return Optional.of(audioUrl);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e.getMessage());
+            throw new IOException(e);
         }
-         */
-        return true;
-
     }
 }
