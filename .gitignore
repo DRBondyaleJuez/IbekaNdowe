@@ -1,0 +1,5 @@
+.idea
+target
+logs
+src/main/resources/secrets.properties
+src/main/resources/application.properties
