@@ -3,7 +3,7 @@ package application.persistence.database;
 import application.exceptions.WordQuerySQLException;
 import application.model.NdoweWord;
 import application.model.TranslatedWordContent;
-import application.model.UpsertedWordContent;
+import application.model.InsertedWordContent;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +13,7 @@ public interface DatabaseTalker {
     List<String> getLanguageList();
     List<String> getLexiconTypeList();
     NdoweWord getNdoweWordTranslation(String wordInput, String inputLanguage, String outputLanguage);
-    boolean upsertWord(UpsertedWordContent upsertedWordContent);
+    boolean insertWord(InsertedWordContent insertedWordContent);
     boolean addNewWord(NdoweWord newNdoweWord);
     boolean editWord(NdoweWord newNdoweWord);
 }

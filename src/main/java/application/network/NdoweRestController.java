@@ -3,7 +3,7 @@ package application.network;
 import application.controller.NdoweMainController;
 import application.model.NdoweWordContent;
 import application.model.TranslatedWordContent;
-import application.model.UpsertedWordContent;
+import application.model.InsertedWordContent;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -78,11 +78,11 @@ public class NdoweRestController {
     }
 
     // POST API to add new details
-    @PostMapping("/upsert-word")
-    public ResponseEntity<Boolean> upsertWordContent(@RequestBody UpsertedWordContent upsertedWordContent) {
-        mainController.upsertWord(upsertedWordContent);
+    @PostMapping("/insert-word")
+    public ResponseEntity<Boolean> upsertWordContent(@RequestBody InsertedWordContent insertedWordContent) {
         System.out.println("UPSERT WORD");
-        System.out.println("Lexical term:" + upsertedWordContent.getWordText());
+        System.out.println("Lexical term:" + insertedWordContent.getWordText());
+        boolean insertionResponse = mainController.insertWord(insertedWordContent);
         return new ResponseEntity<>(true, HttpStatus.OK);
     }
 

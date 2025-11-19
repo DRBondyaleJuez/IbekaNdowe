@@ -3,7 +3,7 @@ package application.persistence.database.postgresql;
 import application.exceptions.WordQuerySQLException;
 import application.model.NdoweWord;
 import application.model.TranslatedWordContent;
-import application.model.UpsertedWordContent;
+import application.model.InsertedWordContent;
 import application.utils.PropertiesReader;
 import application.persistence.database.DatabaseTalker;
 
@@ -149,18 +149,17 @@ public class PostgresqlTalker implements DatabaseTalker {
     }
 
     @Override
-    public boolean upsertWord(UpsertedWordContent upsertedWordContent) {
-        UUID lexicalEntryId = upsertLexicalContent(upsertedWordContent).get();
-        List<UpsertedWordContent.SenseContent> upsertedSenseContentList = upsertedWordContent.getSenseContentFields();
-        for (int i = 0; i < upsertedSenseContentList .size(); i++) {
-            Integer senseId = upsertSenseContent(upsertedSenseContentList.get(i), lexicalEntryId, i).get();
-            List<UpsertedWordContent.SenseTranslation> upsertedSenseTranslationList = upsertedSenseContentList.get(i).getSenseTranslations();
-            for (int j = 0; j < upsertedSenseTranslationList .size(); j++) {
-                upsertSenseTranslationContent(upsertedSenseTranslationList.get(j), senseId);
+    public boolean insertWord(InsertedWordContent insertedWordContent) {
+        UUID lexicalEntryId = insertLexicalContent(insertedWordContent).get();
+        List<InsertedWordContent.SenseContent> insertedSenseContentList = insertedWordContent.getSenseContentFields();
+        for (int i = 0; i < insertedSenseContentList.size(); i++) {
+            Integer senseId = insertSenseContent(insertedSenseContentList.get(i), lexicalEntryId, i).get();
+            List<InsertedWordContent.SenseTranslation> insertedSenseTranslationList = insertedSenseContentList.get(i).getSenseTranslations();
+            for (int j = 0; j < insertedSenseTranslationList.size(); j++) {
+                insertSenseTranslationContent(insertedSenseTranslationList.get(j), senseId);
             }
         }
-
-
+        
         if (lexicalEntryId != null) {
             return true;
         } else {
@@ -168,13 +167,14 @@ public class PostgresqlTalker implements DatabaseTalker {
         }
     }
 
-    private Optional<UUID> upsertLexicalContent(UpsertedWordContent upsertedWordContent) {
+    private Optional<UUID> insertLexicalContent(InsertedWordContent insertedWordContent) {
         UUID lexicalEntryId = UUID.randomUUID();
+        lexicalEntryId = UUID.nameUUIDFromBytes()
 
         // Print the generated UUID
-        System.out.println("Lexical entry " + upsertedWordContent.getWordText() + " UUID: " + lexicalEntryId);
+        System.out.println("Lexical entry " + insertedWordContent.getWordText() + " UUID: " + lexicalEntryId);
 
-        // The SQL query to get the language_id and then perform the upsert
+        // The SQL query to get the language_id and then perform the insert
         String query = """
             WITH lang_id AS (
                 SELECT language_id
@@ -206,11 +206,11 @@ public class PostgresqlTalker implements DatabaseTalker {
 
         try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             // Set parameters
-            preparedStatement.setString(1, upsertedWordContent.getWordLanguage());
+            preparedStatement.setString(1, insertedWordContent.getWordLanguage());
             preparedStatement.setObject(2, lexicalEntryId);
-            preparedStatement.setString(3, upsertedWordContent.getWordText());
-            preparedStatement.setString(4, upsertedWordContent.getWordPhonetic());
-            preparedStatement.setString(5, upsertedWordContent.getWordAudioUrl());
+            preparedStatement.setString(3, insertedWordContent.getWordText());
+            preparedStatement.setString(4, insertedWordContent.getWordPhonetic());
+            preparedStatement.setString(5, insertedWordContent.getWordAudioUrl());
 
             try (ResultSet rs = preparedStatement.executeQuery()) {
                 if (rs.next()) {
@@ -219,9 +219,9 @@ public class PostgresqlTalker implements DatabaseTalker {
                 }
             }
         } catch (SQLException sqlException) {
-            String errorQuerySummary = "Word upsertion SQL error:" +
-                    "- Word input: " + upsertedWordContent.getWordText() + "\n" +
-                    "- Input language: " + upsertedWordContent.getWordLanguage() + "\n" + ";";
+            String errorQuerySummary = "Word insertion SQL error:" +
+                    "- Word input: " + insertedWordContent.getWordText() + "\n" +
+                    "- Input language: " + insertedWordContent.getWordLanguage() + "\n" + ";";
 
             throw new WordQuerySQLException(sqlException, errorQuerySummary);
         }
@@ -229,7 +229,38 @@ public class PostgresqlTalker implements DatabaseTalker {
         return Optional.empty(); // Return empty if the operation failed
     }
 
-    private Optional<Integer> upsertSenseContent(UpsertedWordContent.SenseContent senseContent, UUID lexicalEntryId, int senseOrder) {
+    private boolean lexicalTermAlreadyInserted(InsertedWordContent insertedWordContent) {
+        //TODO: Think about if it is worth it to separate insert y edit all have on conflicts so basically the queries are for upsert
+        // Consider if checking for the term in the table lexical entries is correct and probably change the on conflict of senses allowing more new senses
+        // only the term the conceptual domain and lexical type are not enough imagine "horripilante" both the literal and the scary adjective meaning
+
+
+        // Use PreparedStatement for safety and efficiency
+        String sql = "SELECT 1 FROM lexical_entries WHERE lexical_term = ? AND column_b = ? AND column_c = ? LIMIT 1";
+
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            // 1. Set the values for the placeholders (?)
+            preparedStatement.setString(1, valueA);
+            preparedStatement.setString(2, valueB);
+            preparedStatement.setString(3, valueC);
+
+            // 2. Execute the query
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+
+                // 3. Check if a row was returned
+                // .next() returns true if the cursor is moved to a valid row (i.e., a record was found)
+                return resultSet.next();
+            }
+
+        } catch (SQLException e) {
+            // Handle exceptions (e.g., logging or throwing a custom exception)
+            System.err.println("SQL Error: " + e.getMessage());
+            return false;
+        }
+    }
+
+    private Optional<Integer> insertSenseContent(InsertedWordContent.SenseContent senseContent, UUID lexicalEntryId, int senseOrder) {
         String query = """
             WITH existing_sense AS (
                 SELECT 1
@@ -280,7 +311,7 @@ public class PostgresqlTalker implements DatabaseTalker {
                 }
             }
         } catch (SQLException sqlException) {
-            String errorQuerySummary = "Sense upsertion SQL error:" +
+            String errorQuerySummary = "Sense insertion SQL error:" +
                     "- Sense input: " + senseContent.getDefinition() + "\n" +
                     "- Word UUID: " + lexicalEntryId + "\n" + ";";
 
@@ -290,20 +321,20 @@ public class PostgresqlTalker implements DatabaseTalker {
         return Optional.empty();
     }
 
-    private boolean upsertSenseTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) {
+    private boolean insertSenseTranslationContent(InsertedWordContent.SenseTranslation senseTranslation, int senseId) {
 
         try {
-            Optional<Integer> definitionTranslationId = upsertDefinitionTranslationContent(senseTranslation, senseId);
+            Optional<Integer> definitionTranslationId = insertDefinitionTranslationContent(senseTranslation, senseId);
             if (definitionTranslationId.isEmpty() || definitionTranslationId.get() <= 0) {
                 return false;
             }
-            Optional<Integer> sentenceTranslationId = upsertSentenceTranslationContent(senseTranslation, senseId);
+            Optional<Integer> sentenceTranslationId = insertSentenceTranslationContent(senseTranslation, senseId);
             if (sentenceTranslationId.isEmpty() || sentenceTranslationId.get() <= 0) {
                 return false;
             }
             return true;
         } catch (SQLException sqlException) {
-            String errorQuerySummary = "Defintion or sentence upsertion SQL error:" +
+            String errorQuerySummary = "Defintion or sentence insertion SQL error:" +
                     "- Definition translation input: " + senseTranslation.getDefinitionTranslation() + "\n" +
                     "- Sentence translation input: " + senseTranslation.getExampleSentenceTranslation() + "\n" +
                     "- Language translation input: " + senseTranslation.getTranslationLanguage() + "\n" +
@@ -313,7 +344,7 @@ public class PostgresqlTalker implements DatabaseTalker {
         }
     }
 
-    private Optional<Integer> upsertDefinitionTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
+    private Optional<Integer> insertDefinitionTranslationContent(InsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
         String query = """
         WITH lang_id AS (
             SELECT language_id
@@ -357,7 +388,7 @@ public class PostgresqlTalker implements DatabaseTalker {
         return Optional.empty();
     }
 
-    private Optional<Integer> upsertSentenceTranslationContent(UpsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
+    private Optional<Integer> insertSentenceTranslationContent(InsertedWordContent.SenseTranslation senseTranslation, int senseId) throws SQLException {
         String query = """
                 WITH lang_id AS (
                     SELECT language_id

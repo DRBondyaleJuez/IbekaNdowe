@@ -2,7 +2,7 @@ package application.model;
 
 import java.util.List;
 
-public class UpsertedWordContent {
+public class InsertedWordContent {
         private String wordLanguage;
         private String wordText;
         private String wordPhonetic;
